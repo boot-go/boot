@@ -115,7 +115,7 @@ func TestBootWithWireEnv(t *testing.T) {
 			name:       "wrong int configuration",
 			controller: t8,
 			setup: func() {
-				os.Setenv("t8", "XXX")
+				os.Setenv("t8", "XYZ")
 			},
 			err: "Error failed to load configuration value for t8 <envTestStruct8.B>",
 		},

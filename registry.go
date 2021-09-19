@@ -25,6 +25,7 @@ package boot
 
 import (
 	"errors"
+	"sync"
 )
 
 // registry contains all created component instances.
@@ -32,6 +33,8 @@ type registry struct {
 	// entries are organized in hierarchy, using the component name, instance name and containing
 	//the entry.
 	entries map[string]map[string]*entry
+	// executionWaitGroup tracks the amount off active components
+	executionWaitGroup sync.WaitGroup
 }
 
 // entry represents a registry entity containing the component with its meta data.
@@ -42,6 +45,10 @@ type entry struct {
 	state State
 	// name is used to identify the component.
 	name string
+	// stateChangeMutex to prevent race conditions
+	stateChangeMutex sync.Mutex
+	// registry is the reference where the entry has been stored
+	registry *registry
 }
 
 // State is used to describe the current state of a component instance
@@ -61,7 +68,8 @@ const (
 // newRegistry creates a new component registry.
 func newRegistry() *registry {
 	return &registry{
-		entries: make(map[string]map[string]*entry),
+		entries:            make(map[string]map[string]*entry),
+		executionWaitGroup: sync.WaitGroup{},
 	}
 }
 
@@ -71,6 +79,7 @@ func (r *registry) addEntry(name string, override bool, cmp Component) error {
 		name:      name,
 		component: cmp,
 		state:     Created,
+		registry:  r,
 	}
 	id := QualifiedName(cmp)
 	if r.entries[id] == nil {
@@ -98,8 +107,51 @@ func (r *registry) addEntry(name string, override bool, cmp Component) error {
 	return nil
 }
 
+// waitUntilAllComponentsStopped() will wait until all components have stopped processing
+func (r *registry) waitUntilAllComponentsStopped() {
+	Logger.Debug.Printf("wait until all components are stopped...")
+	r.executionWaitGroup.Wait()
+	Logger.Debug.Printf("all components stopped")
+}
+
 // getFullName() return the instance name with name of the component separated by a colon.
 //E.g. default:github.com/boot-go/boot/boot/runtime
 func (e *entry) getFullName() string {
 	return e.name + ":" + QualifiedName(e.component)
+}
+
+// start will call the start function inside Component, if it is not nil
+func (e *entry) start() {
+	if runnable, ok := e.component.(Process); ok {
+		e.stateChangeMutex.Lock()
+		if e.state == Initialized {
+		e.registry.executionWaitGroup.Add(1)
+			go func() {
+				Logger.Debug.Printf("starting %s", e.getFullName())
+				runnable.Start()
+				e.stateChangeMutex.Lock()
+				if e.state == Started {
+					e.state = Stopped
+					e.registry.executionWaitGroup.Done()
+				}
+				e.stateChangeMutex.Unlock()
+			}()
+			e.state = Started
+		}
+		e.stateChangeMutex.Unlock()
+	}
+}
+
+// stop will call the stop function inside Component, if it is not nil
+func (e *entry) stop() {
+	if process, ok := e.component.(Process); ok {
+		e.stateChangeMutex.Lock()
+		if e.state == Started {
+			Logger.Debug.Printf("stopping %s", e.getFullName())
+			process.Stop()
+			e.state = Stopped
+			e.registry.executionWaitGroup.Done()
+		}
+		e.stateChangeMutex.Unlock()
+	}
 }

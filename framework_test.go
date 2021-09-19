@@ -84,11 +84,13 @@ func (t *bootPanicComponent) Init() {
 }
 
 type bootPhaseComponent struct {
+	block                   chan bool
 	onStart, onStop, onInit bool
 	phase                   Phase
 }
 
 func (t *bootPhaseComponent) Init() {
+	t.block = make(chan bool, 1)
 	if t.onInit {
 		phase = t.phase
 	}
@@ -98,12 +100,17 @@ func (t *bootPhaseComponent) Start() {
 	if t.onStart {
 		phase = t.phase
 	}
+	if t.onStop {
+		Shutdown()
+		<-t.block
+	}
 }
 
 func (t *bootPhaseComponent) Stop() {
 	if t.onStop {
 		phase = t.phase
 	}
+	t.block <- true
 }
 
 func TestBootGo(t *testing.T) {
@@ -118,7 +125,7 @@ func TestBootGo(t *testing.T) {
 
 	if !testStruct.initCalled ||
 		!testStruct.startCalled ||
-		!testStruct.stopCalled {
+		testStruct.stopCalled {
 		t.Fail()
 	}
 }
@@ -477,7 +484,7 @@ func TestPhaseErrorWhenRun(t *testing.T) {
 			setupTest()
 			phase = tt.phase
 			_, err := run(tt.args.factoryList())
-			if (err != nil) && err.Error() != tt.wantErr {
+			if err == nil || err.Error() != tt.wantErr {
 				t.Errorf("run() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}

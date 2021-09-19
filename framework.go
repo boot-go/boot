@@ -61,10 +61,9 @@ type Component interface {
 type Process interface {
 	Component
 	// Start is called as soon as all boot.Component components are initialized. The call should be
-	// blocking until all processing is completed. After completion the function Stop() is called
-	// to clean up.
+	// blocking until all processing is completed.
 	Start()
-	// Stop is called to abort the processing and clean up resources. Pay attentian that the
+	// Stop is called to abort the processing and clean up resources. Pay attention that the
 	// processing may already be stopped.
 	Stop()
 }
@@ -115,11 +114,9 @@ const (
 )
 
 var (
-	factories  []factory
-	phaseMutex sync.Mutex
-	phase      Phase
-	// startedMutex       sync.Mutex
-	executionWaitGroup sync.WaitGroup
+	factories          []factory
+	phaseMutex         sync.Mutex
+	phase              Phase
 	shutdownChannel    chan os.Signal
 )
 
@@ -132,7 +129,6 @@ func setup(mode Flag) {
 	factories = []factory{}
 	phase = Initializing
 	phaseMutex = sync.Mutex{}
-	executionWaitGroup = sync.WaitGroup{}
 	// register default components
 	Register(func() Component {
 		return newEventbus()
@@ -249,8 +245,7 @@ func run(factoryList []factory) ([]*entry, error) {
 	if err = startComponents(entries); err != nil {
 		return entries, err
 	}
-	time.Sleep(3 * time.Second)
-	executionWaitGroup.Wait()
+	registry.waitUntilAllComponentsStopped()
 	if phase == Running {
 		_ = stopComponents(entries)
 	}
@@ -306,7 +301,7 @@ func stopComponents(entries []*entry) error {
 	}
 	for i := range entries {
 		e := entries[len(entries)-i-1]
-		stop(e)
+		e.stop()
 	}
 	return nil
 }
@@ -316,7 +311,7 @@ func startComponents(entries []*entry) error {
 		return err
 	}
 	for _, e := range entries {
-		start(e)
+		e.start()
 	}
 	return nil
 }
@@ -333,29 +328,4 @@ func resolveComponentDependencies(registry *registry) ([]*entry, error) {
 		}
 	}
 	return entries, nil
-}
-
-// start will call the start function inside Component, if it is not nil
-func start(e *entry) {
-	if runnable, ok := e.component.(Process); ok {
-		executionWaitGroup.Add(1)
-		go func() {
-			Logger.Debug.Printf("starting %s", e.getFullName())
-			e.state = Started
-			runnable.Start()
-			stop(e)
-		}()
-	}
-}
-
-// stop will call the stop function inside Component, if it is not nil
-func stop(e *entry) {
-	if process, ok := e.component.(Process); ok {
-		if e.state == Started {
-			Logger.Debug.Printf("stopping %s", e.getFullName())
-			process.Stop()
-			e.state = Stopped
-			executionWaitGroup.Done()
-		}
-	}
 }
