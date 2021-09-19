@@ -125,7 +125,7 @@ func (e *entry) start() {
 	if runnable, ok := e.component.(Process); ok {
 		e.stateChangeMutex.Lock()
 		if e.state == Initialized {
-		e.registry.executionWaitGroup.Add(1)
+			e.registry.executionWaitGroup.Add(1)
 			go func() {
 				Logger.Debug.Printf("starting %s", e.getFullName())
 				runnable.Start()

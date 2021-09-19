@@ -43,7 +43,7 @@ const (
 	fieldTagConfig    = "config"
 	fieldTagWire      = "wire"
 	fieldTagName      = "name"
-	fieldTagWireEnv   = "env"
+	fieldTagWireKey   = "key"
 	fieldTagWirePanic = "panic"
 )
 
@@ -180,9 +180,8 @@ func processConfiguration(field reflect.StructField, componentValue reflect.Valu
 	if tag.hasOption(fieldTagWirePanic) {
 		panicOnFail = true
 	}
-	if tag.hasOption(fieldTagWireEnv) {
-		if cfg := tag.options[fieldTagWireEnv]; len(cfg) > 3 {
-			cfg = cfg[2 : len(cfg)-1]
+	if tag.hasOption(fieldTagWireKey) {
+		if cfg := tag.options[fieldTagWireKey]; len(cfg) > 0 {
 			if cfgValue, ok := os.LookupEnv(cfg); ok {
 				if fieldValue.CanSet() {
 					processConfigString(field, fieldValue, cfgValue, cfg)
@@ -205,7 +204,7 @@ func processConfiguration(field reflect.StructField, componentValue reflect.Valu
 				Logger.Warn.Printf("failed to parse configuration value %s for %s\n", cfgValue, "<"+componentValue.Type().Name()+"."+field.Name+">")
 			}
 		} else {
-			return fmt.Errorf("unsupported env value %s", cfg)
+			return fmt.Errorf("unsupported tag value %s", cfg)
 		}
 	} else {
 		return &DependencyInjectionError{

@@ -29,7 +29,7 @@ import (
 	"testing"
 )
 
-func TestBootWithWireEnv(t *testing.T) {
+func TestBootWithWireConfig(t *testing.T) {
 	t1 := &envTestStruct1{}
 	t2 := &envTestStruct2{}
 	t3 := &envTestStruct3{}
@@ -85,7 +85,7 @@ func TestBootWithWireEnv(t *testing.T) {
 			err:        "Error failed to load configuration value for t3 <envTestStruct3.C>",
 		},
 		{
-			name:       "Misconfigured tag",
+			name:       "misconfigured tag",
 			controller: t4,
 			expected: &envTestStruct4{
 				C: "",
@@ -94,7 +94,7 @@ func TestBootWithWireEnv(t *testing.T) {
 		{
 			name:       "misconfigured tag name",
 			controller: t5,
-			err:        "Error dependency field has unsupported tag  <envTestStruct5.C `wi-re,env:${t3},panic`>",
+			err:        "Error dependency field has unsupported tag  <envTestStruct5.C `wi-re,key:t3,panic`>",
 		},
 		{
 			name:       "missing tag value",
@@ -159,7 +159,7 @@ func TestBootWithWireEnv(t *testing.T) {
 			setup: func() {
 				os.Setenv("t13", "xyz")
 			},
-			err: "unsupported env value ${}",
+			err: "unsupported tag value ",
 		},
 	}
 	for _, test := range tests {
@@ -168,7 +168,7 @@ func TestBootWithWireEnv(t *testing.T) {
 				test.setup()
 			}
 			_, err := resolveDependency(getEntry(&test.controller), registry)
-			if len(test.err) == 0 {
+			if test.err == "" {
 				if err != nil {
 					t.Fail()
 				}
@@ -187,7 +187,7 @@ func TestBootWithWireEnv(t *testing.T) {
 type envTestStruct1 struct {
 	a int
 	B int
-	C string `boot:"config,env:${t1}"`
+	C string `boot:"config,key:t1"`
 	d interface{}
 	e []interface{}
 }
@@ -199,7 +199,7 @@ func (t envTestStruct1) do1() {}
 type envTestStruct2 struct {
 	a int
 	B int
-	C string `boot:"config,env:${t2}"`
+	C string `boot:"config,key:t2"`
 	d interface{}
 	e []interface{}
 }
@@ -211,7 +211,7 @@ func (t envTestStruct2) Init() {}
 type envTestStruct3 struct {
 	a int
 	B int
-	C string `boot:"config,env:${t3},panic"`
+	C string `boot:"config,key:t3,panic"`
 	d interface{}
 	e []interface{}
 }
@@ -221,7 +221,7 @@ func (t envTestStruct3) Init() {}
 type envTestStruct4 struct {
 	a int
 	B int
-	C string `bo-ot:"config,env:${t1},panic"`
+	C string `bo-ot:"config,key:t1,panic"`
 	d interface{}
 	e []interface{}
 }
@@ -231,7 +231,7 @@ func (t envTestStruct4) Init() {}
 type envTestStruct5 struct {
 	a int
 	B int
-	C string `boot:"wi-re,env:${t3},panic"`
+	C string `boot:"wi-re,key:t3,panic"`
 	d interface{}
 	e []interface{}
 }
@@ -250,7 +250,7 @@ func (t envTestStruct6) Init() {}
 
 type envTestStruct7 struct {
 	a int
-	B int `boot:"config,env:${t7}"`
+	B int `boot:"config,key:t7"`
 	C string
 	d interface{}
 	e []interface{}
@@ -260,7 +260,7 @@ func (t envTestStruct7) Init() {}
 
 type envTestStruct8 struct {
 	a int
-	B int `boot:"config,env:${t8},panic"`
+	B int `boot:"config,key:t8,panic"`
 	C string
 	d interface{}
 	e []interface{}
@@ -274,7 +274,7 @@ type envTestStruct9 struct {
 	C string
 	d interface{}
 	e []interface{}
-	F bool `boot:"config,env:${t9},panic"`
+	F bool `boot:"config,key:t9,panic"`
 }
 
 func (t envTestStruct9) Init() {}
@@ -285,7 +285,7 @@ type envTestStruct10 struct {
 	C string
 	d interface{}
 	e []interface{}
-	F bool `boot:"config,env:${t10},panic"`
+	F bool `boot:"config,key:t10,panic"`
 }
 
 func (t envTestStruct10) Init() {}
@@ -296,14 +296,14 @@ type envTestStruct11 struct {
 	C string
 	d interface{}
 	e []interface{}
-	F bool `boot:"config,env:${t11}"`
+	F bool `boot:"config,key:t11"`
 }
 
 func (t envTestStruct11) Init() {}
 
 type envTestStruct12 struct {
 	a int
-	B int `boot:"config,env:${t12}"`
+	B int `boot:"config,key:t12"`
 	C string
 	d interface{}
 	e []interface{}
@@ -314,7 +314,7 @@ func (t envTestStruct12) Init() {}
 
 type envTestStruct13 struct {
 	a int
-	B int `boot:"config,env:${}"`
+	B int `boot:"config,key"`
 	C string
 	d interface{}
 	e []interface{}

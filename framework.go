@@ -114,10 +114,10 @@ const (
 )
 
 var (
-	factories          []factory
-	phaseMutex         sync.Mutex
-	phase              Phase
-	shutdownChannel    chan os.Signal
+	factories       []factory
+	phaseMutex      sync.Mutex
+	phase           Phase
+	shutdownChannel chan os.Signal
 )
 
 func init() {
@@ -217,7 +217,7 @@ func Go() error {
 	s := new(gort.MemStats)
 	gort.ReadMemStats(s)
 	// output some basic info
-	Logger.Info.Printf("booting %s OS/%s ARCH/%s CPU/%d MEM/%dMB SYS/%dMB\n", gort.Version(), gort.GOOS, gort.GOARCH, gort.NumCPU(), (s.Alloc / 1024 / 1024), (s.Sys / 1024 / 1024))
+	Logger.Info.Printf("booting `boot-go %s` /// %s OS/%s ARCH/%s CPU/%d MEM/%dMB SYS/%dMB\n", version, gort.Version(), gort.GOOS, gort.GOARCH, gort.NumCPU(), (s.Alloc / 1024 / 1024), (s.Sys / 1024 / 1024))
 	entries, err := run(factories)
 	Logger.Debug.Printf("boot done with %d components", len(entries))
 	if err == nil {
@@ -263,12 +263,12 @@ func shutdownHandler(entries []*entry) {
 		sig := <-shutdownChannel
 		switch {
 		case sig == os.Interrupt || sig == os.Kill:
-			Logger.Warn.Printf("catched signal: %s\n", sig.String())
+			Logger.Warn.Printf("caught signal: %s\n", sig.String())
 			Logger.Debug.Printf("shutdown gracefully initiated...\n")
 		case sig == shutdownSignal:
 			Logger.Debug.Printf("shutdown requested...\n")
 		}
-		_ = stopComponents(entries) // ignore error, because there is nothing useful to recover
+		_ = stopComponents(entries)
 		Logger.Info.Printf("shutdown completed\n")
 	}()
 	return

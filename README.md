@@ -1,7 +1,10 @@
 <div>
-  <div align="center"><img src="https://avatars.githubusercontent.com/u/80048065?s=200&u=a95ef12cecad462ed24df9418a8464241301cc16"/></div>
-  <div align="center"><a href="https://opensource.org/licenses/MIT"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="License: MIT"></a>
-  <a href="https://goreportcard.com/report/github.com/boot-go/boot"><img src="https://goreportcard.com/badge/github.com/boot-go/boot" alt="License: MIT"></a></div>
+    <div align="center"><img src="https://avatars.githubusercontent.com/u/80048065?s=200&u=a95ef12cecad462ed24df9418a8464241301cc16"/></div>
+    <div align="center">
+        <a href="https://github.com/boot-go/boot/actions/workflows/action.yml"><img src="https://github.com/boot-go/boot/actions/workflows/action.yml/badge.svg?branch=main" alt="github action"></a>
+        <a href="https://goreportcard.com/report/github.com/boot-go/boot"><img src="https://goreportcard.com/badge/github.com/boot-go/boot" alt="go report"></a>
+        <a href="https://opensource.org/licenses/MIT"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="License: MIT"></a>
+    </div>
 </div>
 
 **boot-go** accentuate [component-based development](https://en.wikipedia.org/wiki/Component-based_software_engineering) (CBD).
@@ -100,6 +103,40 @@ func (h *hello) Init() {
 func main() {
 	boot.Go()
 }
+```
+
+### Configuration
+Configuration values can also be automatically injected with environment variables at start time. The value from ```USER``` will be used in this example. If the variable is not defined, it is possible to specify the reaction whether the execution should stop with a panic or continue with a warning.
+```go
+package main
+
+import (
+	"github.com/boot-go/boot"
+	"log"
+)
+
+// hello is still a simple component.
+type hello struct{
+	Out string `boot:"config,key:USER"` // get the value from the environment variable
+}
+
+// init() registers a factory method, which creates a hello component and returns a reference to it.
+func init() {
+	boot.Register(func() boot.Component {
+		return &hello{}
+	})
+}
+
+// Init is the initializer of the component.
+func (c *hello) Init() {
+	log.Printf("boot-go says > 'Hello %s'\n", c.Out)
+}
+
+// Start the example and exit after the component was completed
+func main() {
+	boot.Go()
+}
+
 ```
 
 ### Examples

@@ -66,6 +66,7 @@ func (t *bootProcessesComponent) Start() {
 
 func (t *bootProcessesComponent) Stop() {
 	t.block <- true
+	close(t.block)
 }
 
 type bootMissingDependencyComponent struct {
@@ -128,6 +129,7 @@ func TestBootGo(t *testing.T) {
 		testStruct.stopCalled {
 		t.Fail()
 	}
+	tearDown()
 }
 
 func TestBootAlreadyRegisteredComponent(t *testing.T) {
@@ -137,6 +139,7 @@ func TestBootAlreadyRegisteredComponent(t *testing.T) {
 
 	err := Go()
 	if err != nil && err.Error() == "go aborted because component github.com/boot-go/boot/bootTestComponent already registered under the name 'default'" {
+		tearDown()
 		return
 	}
 	t.Fatal("error expected on already registered component")
@@ -147,6 +150,7 @@ func TestBootFactoryFail(t *testing.T) {
 	if err == nil {
 		t.FailNow()
 	}
+	tearDown()
 }
 
 func TestBootWithErrorComponent(t *testing.T) {
@@ -171,6 +175,7 @@ func TestBootWithErrorComponent(t *testing.T) {
 				t.Errorf("Expected '%s' but found '%s'", tt.err.Error(), err.Error())
 			}
 		})
+		tearDown()
 	}
 }
 
@@ -180,7 +185,7 @@ func TestBootShutdown(t *testing.T) {
 	overrideTestComponent(testStruct)
 
 	go func() {
-		time.Sleep(3 * time.Second)
+		time.Sleep(5 * time.Second)
 		Shutdown()
 	}()
 
@@ -189,10 +194,12 @@ func TestBootShutdown(t *testing.T) {
 		t.FailNow()
 	}
 
-	time.Sleep(1 * time.Second)
+	time.Sleep(2 * time.Second)
 	if !testStruct.stopped {
 		t.Fatal("Component not stopped")
 	}
+
+	tearDown()
 }
 
 func TestShutdownByOSSignal(t *testing.T) {
@@ -212,6 +219,8 @@ func TestShutdownByOSSignal(t *testing.T) {
 	if !testStruct.stopped {
 		t.Fatal("Component not stopped")
 	}
+
+	tearDown()
 }
 
 func TestResolveComponentError(t *testing.T) {
@@ -220,6 +229,7 @@ func TestResolveComponentError(t *testing.T) {
 	if err == nil || err.Error() != "Error dependency field is not a pointer receiver <bootMissingDependencyComponent.WireFails>" {
 		t.Fatal("resolve dependency error must result in an exit with proper error message")
 	}
+	tearDown()
 }
 
 func TestRegister(t *testing.T) {
@@ -244,6 +254,7 @@ func TestRegister(t *testing.T) {
 			setupTest()
 			Register(tt.args.create)
 		})
+		tearDown()
 	}
 }
 
@@ -298,6 +309,7 @@ func TestRegisterWithPanic(t *testing.T) {
 			}
 			RegisterName(tt.args.name, tt.args.create)
 		})
+		tearDown()
 	}
 }
 
@@ -323,6 +335,7 @@ func TestOverride(t *testing.T) {
 			setupTest()
 			Override(tt.args.create)
 		})
+		tearDown()
 	}
 }
 
@@ -377,6 +390,7 @@ func TestOverrideWithPanic(t *testing.T) {
 			}
 			OverrideName(tt.args.name, tt.args.create)
 		})
+		tearDown()
 	}
 }
 
@@ -402,6 +416,7 @@ func TestPhaseWhenStartComponents(t *testing.T) {
 				t.Errorf("startComponents() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
+		tearDown()
 	}
 }
 
@@ -427,6 +442,7 @@ func TestPhaseWhenStopComponents(t *testing.T) {
 				t.Errorf("startComponents() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
+		tearDown()
 	}
 }
 
@@ -489,6 +505,7 @@ func TestPhaseErrorWhenRun(t *testing.T) {
 				return
 			}
 		})
+		tearDown()
 	}
 }
 
@@ -507,4 +524,10 @@ func TestPhaseString(t *testing.T) {
 			}
 		})
 	}
+	tearDown()
+}
+
+func tearDown() {
+	// cool down required to avoid race conditions while testing the most outer functions.
+	time.Sleep(2 * time.Second)
 }
