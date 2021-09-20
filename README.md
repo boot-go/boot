@@ -117,7 +117,7 @@ import (
 
 // hello is still a simple component.
 type hello struct{
-	Out string `boot:"config,key:USER"` // get the value from the environment variable
+	Out string `boot:"config,key:USER,default:madjax"` // get the value from the environment variable
 }
 
 // init() registers a factory method, which creates a hello component and returns a reference to it.

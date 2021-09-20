@@ -43,7 +43,8 @@ func TestBootWithWireConfig(t *testing.T) {
 	t11 := &envTestStruct11{}
 	t12 := &envTestStruct12{}
 	t13 := &envTestStruct13{}
-	controls := []Component{t1, t2, t3, t4, t5, t6, t7, t8, t9, t10, t11, t12, t13}
+	t14 := &envTestStruct14{}
+	controls := []Component{t1, t2, t3, t4, t5, t6, t7, t8, t9, t10, t11, t12, t13, t14}
 
 	registry := newRegistry()
 	for _, control := range controls {
@@ -160,6 +161,15 @@ func TestBootWithWireConfig(t *testing.T) {
 				os.Setenv("t13", "xyz")
 			},
 			err: "unsupported tag value ",
+		},
+		{
+			name:       "default config value",
+			controller: t14,
+			setup: func() {
+			},
+			expected: &envTestStruct14{
+				B: 42,
+			},
 		},
 	}
 	for _, test := range tests {
@@ -322,3 +332,14 @@ type envTestStruct13 struct {
 }
 
 func (t envTestStruct13) Init() {}
+
+type envTestStruct14 struct {
+	a int
+	B int `boot:"config,key:UNKNOWN,default:42"`
+	C string
+	d interface{}
+	e []interface{}
+	F bool
+}
+
+func (t envTestStruct14) Init() {}

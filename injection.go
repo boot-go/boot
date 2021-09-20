@@ -39,72 +39,73 @@ type DependencyInjectionError struct {
 }
 
 const (
-	fieldTag          = "boot" // this key should follow the package name
-	fieldTagConfig    = "config"
-	fieldTagWire      = "wire"
-	fieldTagName      = "name"
-	fieldTagWireKey   = "key"
-	fieldTagWirePanic = "panic"
+	fieldTag            = "boot" // this key should follow the package name
+	fieldTagConfig      = "config"
+	fieldTagWire        = "wire"
+	fieldTagName        = "name"
+	fieldTagWireKey     = "key"
+	fieldTagWirePanic   = "panic"
+	fieldTagWireDefault = "default"
 )
 
 func (e *DependencyInjectionError) Error() string {
 	return fmt.Sprintf("Error %s %s", e.err, e.detail)
 }
 
-func resolveDependency(resolveEntry *entry, registry *registry) (entries []*entry, err error) {
+func resolveDependency(regEntry *entry, reg *registry) (entries []*entry, err error) {
 	// exit if this component is already initialized
-	if resolveEntry.state != Created {
+	if regEntry.state != Created {
 		return entries, nil
 	}
-	Logger.Debug.Printf("resolving dependencies for %s", resolveEntry.getFullName())
-	componentValue := reflect.ValueOf(resolveEntry.component)
-	if componentValue.Kind() == reflect.Ptr {
-		componentValue = componentValue.Elem()
+	Logger.Debug.Printf("resolving dependencies for %s", regEntry.getFullName())
+	reflectedComponent := reflect.ValueOf(regEntry.component)
+	if reflectedComponent.Kind() == reflect.Ptr {
+		reflectedComponent = reflectedComponent.Elem()
 	}
-	for j := 0; j < componentValue.Type().NumField(); j++ {
-		field := componentValue.Type().Field(j)
-		fieldValue := componentValue.Field(j)
+	for j := 0; j < reflectedComponent.Type().NumField(); j++ {
+		field := reflectedComponent.Type().Field(j)
+		fieldValue := reflectedComponent.Field(j)
 		if tag, ok := field.Tag.Lookup(fieldTag); ok {
 			parsedTag, ok := parseStructTag(tag)
 			if !ok {
 				return nil, &DependencyInjectionError{
 					err: "field contains unparsable tag",
-					detail: " <" + componentValue.Type().Name() + "." + field.Name +
+					detail: " <" + reflectedComponent.Type().Name() + "." + field.Name +
 						" `" + tag + "`>",
 				}
 			}
 			switch parsedTag.name {
 			case fieldTagWire:
-				name := parsedTag.options[fieldTagName]
-				if name == "" {
-					name = DefaultName
+				regEntryName := parsedTag.options[fieldTagName]
+				if regEntryName == "" {
+					regEntryName = DefaultName
 				}
-				if resolvedEntries, err := processWiring(name, field, componentValue, fieldValue, registry); err == nil {
+				if resolvedEntries, err := processWiring(reg, reflectedComponent, field, fieldValue, regEntryName); err == nil {
 					entries = append(entries, resolvedEntries...)
 				} else {
 					return nil, err
 				}
 			case fieldTagConfig:
-				if err := processConfiguration(field, componentValue, fieldValue, parsedTag); err != nil {
+				if err := processConfiguration(reflectedComponent, field, fieldValue, parsedTag); err != nil {
 					return nil, err
 				}
 			default:
 				return nil, &DependencyInjectionError{
 					err: "dependency field has unsupported tag",
-					detail: " <" + componentValue.Type().Name() + "." + field.Name +
+					detail: " <" + reflectedComponent.Type().Name() + "." + field.Name +
 						" `" + tag + "`>",
 				}
 			}
 		}
 	}
 	// initialize component
-	Logger.Debug.Printf("initializing %s", resolveEntry.getFullName())
-	err = initComponent(resolveEntry)
+	Logger.Debug.Printf("initializing %s", regEntry.getFullName())
+	err = initComponent(regEntry)
 	if err != nil {
 		return
 	}
-	resolveEntry.state = Initialized
-	entries = append(entries, resolveEntry)
+	regEntry.state = Initialized
+	entries = append(entries, regEntry)
 	return entries, nil
 }
 
@@ -125,16 +126,16 @@ func initComponent(resolveEntry *entry) (err error) {
 	return nil
 }
 
-func processWiring(name string, field reflect.StructField, componentValue reflect.Value, fieldValue reflect.Value, registry *registry) ([]*entry, error) {
+func processWiring(reg *registry, reflectedComponent reflect.Value, field reflect.StructField, fieldValue reflect.Value, regEntryName string) ([]*entry, error) {
 	if fieldValue.Kind() != reflect.Ptr && fieldValue.Kind() != reflect.Interface {
 		return nil, &DependencyInjectionError{
 			err:    "dependency field is not a pointer receiver",
-			detail: "<" + componentValue.Type().Name() + "." + field.Name + ">",
+			detail: "<" + reflectedComponent.Type().Name() + "." + field.Name + ">",
 		}
 	}
 	var matchingValues []reflect.Value
-	for _, list := range registry.entries {
-		e := list[name]
+	for _, list := range reg.entries {
+		e := list[regEntryName]
 		if e != nil {
 			controlValue := reflect.ValueOf(e.component)
 			if controlValue.Type().AssignableTo(field.Type) {
@@ -143,7 +144,7 @@ func processWiring(name string, field reflect.StructField, componentValue reflec
 				} else {
 					return nil, &DependencyInjectionError{
 						err:    "dependency value cannot be set into",
-						detail: "<" + componentValue.Type().Name() + "." + field.Name + ">",
+						detail: "<" + reflectedComponent.Type().Name() + "." + field.Name + ">",
 					}
 				}
 			}
@@ -151,9 +152,9 @@ func processWiring(name string, field reflect.StructField, componentValue reflec
 	}
 	if len(matchingValues) == 1 {
 		typeName := matchingValues[0].Elem().Type().PkgPath() + "/" + matchingValues[0].Elem().Type().Name()
-		e := registry.entries[typeName][name]
+		e := reg.entries[typeName][regEntryName]
 		if e.state == Created {
-			entries, err := resolveDependency(e, registry)
+			entries, err := resolveDependency(e, reg)
 			if err != nil {
 				return nil, err
 			}
@@ -164,52 +165,62 @@ func processWiring(name string, field reflect.StructField, componentValue reflec
 	} else if len(matchingValues) == 0 {
 		return nil, &DependencyInjectionError{
 			err:    "dependency value not found for",
-			detail: "<" + name + ":" + componentValue.Type().Name() + "." + field.Name + ">",
+			detail: "<" + regEntryName + ":" + reflectedComponent.Type().Name() + "." + field.Name + ">",
 		}
 	} else {
 		return nil, &DependencyInjectionError{
 			err:    "multiple dependency values found for",
-			detail: "<" + name + ":" + componentValue.Type().Name() + "." + field.Name + ">",
+			detail: "<" + regEntryName + ":" + reflectedComponent.Type().Name() + "." + field.Name + ">",
 		}
 	}
 	return []*entry{}, nil // this
 }
 
-func processConfiguration(field reflect.StructField, componentValue reflect.Value, fieldValue reflect.Value, tag *tag) error {
+func processConfiguration(reflectedComponent reflect.Value, field reflect.StructField, fieldValue reflect.Value, tag *tag) error {
 	panicOnFail := false
+	defaultCfg := ""
+	hasDefault := false
 	if tag.hasOption(fieldTagWirePanic) {
 		panicOnFail = true
 	}
+	if tag.hasOption(fieldTagWireDefault) {
+		defaultCfg = tag.options[fieldTagWireDefault]
+		hasDefault = true
+	}
 	if tag.hasOption(fieldTagWireKey) {
-		if cfg := tag.options[fieldTagWireKey]; len(cfg) > 0 {
-			if cfgValue, ok := os.LookupEnv(cfg); ok {
+		if cfgKey := tag.options[fieldTagWireKey]; len(cfgKey) > 0 {
+			if cfgValue, ok := os.LookupEnv(cfgKey); ok || hasDefault {
+				if hasDefault {
+					cfgValue = defaultCfg
+				}
 				if fieldValue.CanSet() {
-					processConfigString(field, fieldValue, cfgValue, cfg)
-					err := processConfigInt(field, componentValue, fieldValue, cfgValue, panicOnFail, cfg)
+					processConfigString(field, fieldValue, cfgValue, cfgKey)
+					err := processConfigInt(field, reflectedComponent, fieldValue, cfgValue, panicOnFail, cfgKey)
 					if err != nil {
 						return err
 					}
-					err = processConfigBool(field, componentValue, fieldValue, cfgValue, panicOnFail, cfg)
+					err = processConfigBool(field, reflectedComponent, fieldValue, cfgValue, panicOnFail, cfgKey)
 					if err != nil {
 						return err
 					}
 				}
 			} else {
+				//Logger.Debug.Printf("setting default configuration value %s for %s\n", defaultCfg, "<"+reflectedComponent.Type().Name()+"."+field.Name+">")
 				if panicOnFail {
 					return &DependencyInjectionError{
-						err:    "failed to load configuration value for " + cfg,
-						detail: "<" + componentValue.Type().Name() + "." + field.Name + ">",
+						err:    "failed to load configuration value for " + cfgKey,
+						detail: "<" + reflectedComponent.Type().Name() + "." + field.Name + ">",
 					}
 				}
-				Logger.Warn.Printf("failed to parse configuration value %s for %s\n", cfgValue, "<"+componentValue.Type().Name()+"."+field.Name+">")
+				Logger.Warn.Printf("failed to parse configuration value %s for %s\n", cfgValue, "<"+reflectedComponent.Type().Name()+"."+field.Name+">")
 			}
 		} else {
-			return fmt.Errorf("unsupported tag value %s", cfg)
+			return fmt.Errorf("unsupported tag value %s", cfgKey)
 		}
 	} else {
 		return &DependencyInjectionError{
 			err:    "unsupported configuration options found",
-			detail: "<" + componentValue.Type().Name() + "." + field.Name + ">",
+			detail: "<" + reflectedComponent.Type().Name() + "." + field.Name + ">",
 		}
 	}
 	return nil
