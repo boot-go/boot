@@ -106,7 +106,7 @@ func main() {
 ```
 
 ### Configuration
-Configuration values can also be automatically injected with environment variables at start time. The value from ```USER``` will be used in this example. If the variable is not defined, it is possible to specify the reaction whether the execution should stop with a panic or continue with a warning.
+Configuration values can also be automatically injected with arguments or environment variables at start time. The value from ```USER``` will be used in this example. If the argument ```--USER madpax``` is not set and the environment variable is not defined, it is possible to specify the reaction whether the execution should stop with a panic or continue with a warning.
 ```go
 package main
 
@@ -117,7 +117,7 @@ import (
 
 // hello is still a simple component.
 type hello struct{
-	Out string `boot:"config,key:USER,default:madjax"` // get the value from the environment variable
+	Out string `boot:"config,key:USER,default:madjax"` // get the value from the argument list or environment variable. If no value could be determined, then use the default value `madjax`.
 }
 
 // init() registers a factory method, which creates a hello component and returns a reference to it.

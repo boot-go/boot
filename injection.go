@@ -189,7 +189,7 @@ func processConfiguration(reflectedComponent reflect.Value, field reflect.Struct
 	}
 	if tag.hasOption(fieldTagWireKey) {
 		if cfgKey := tag.options[fieldTagWireKey]; len(cfgKey) > 0 {
-			if cfgValue, ok := os.LookupEnv(cfgKey); ok || hasDefault {
+			if cfgValue, ok := getConfig(cfgKey); ok || hasDefault {
 				if hasDefault {
 					cfgValue = defaultCfg
 				}
@@ -205,7 +205,6 @@ func processConfiguration(reflectedComponent reflect.Value, field reflect.Struct
 					}
 				}
 			} else {
-				//Logger.Debug.Printf("setting default configuration value %s for %s\n", defaultCfg, "<"+reflectedComponent.Type().Name()+"."+field.Name+">")
 				if panicOnFail {
 					return &DependencyInjectionError{
 						err:    "failed to load configuration value for " + cfgKey,
@@ -224,6 +223,22 @@ func processConfiguration(reflectedComponent reflect.Value, field reflect.Struct
 		}
 	}
 	return nil
+}
+
+func getConfig(cfgKey string) (string, bool) {
+	key := ""
+	for _, arg := range os.Args {
+		if strings.HasPrefix(arg, "--") && len(arg) > 2 {
+			key = arg[2:]
+		} else if key != "" {
+			if cfgKey == key {
+				return arg, true
+			}
+		} else {
+			key = ""
+		}
+	}
+	return os.LookupEnv(cfgKey)
 }
 
 func processConfigBool(field reflect.StructField, componentValue reflect.Value, fieldValue reflect.Value, cfgValue string, panicOnFail bool, cfg string) error {

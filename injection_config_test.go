@@ -165,8 +165,7 @@ func TestBootWithWireConfig(t *testing.T) {
 		{
 			name:       "default config value",
 			controller: t14,
-			setup: func() {
-			},
+			setup:      func() {},
 			expected: &envTestStruct14{
 				B: 42,
 			},
@@ -189,6 +188,36 @@ func TestBootWithWireConfig(t *testing.T) {
 				if err != nil && err.Error() != test.err {
 					t.Fatal(err.Error())
 				}
+			}
+		})
+	}
+}
+
+func TestGetConfig(t *testing.T) {
+	type args struct {
+		cfgKey string
+		cmdArgs   []string
+	}
+	tests := []struct {
+		name  string
+		args      args
+		wantValue string
+		wantOk    bool
+	}{
+		{name: "Key found", args: args{cfgKey: "mytest", cmdArgs: []string{"--mytest", "Hello"}}, wantValue: "Hello", wantOk: true},
+		{name: "Key not found", args: args{cfgKey: "mytest"}, wantValue: "", wantOk: false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			backupArgs := os.Args
+			os.Args = append(os.Args, tt.args.cmdArgs...)
+			got, got1 := getConfig(tt.args.cfgKey)
+			os.Args = backupArgs
+			if got != tt.wantValue {
+				t.Errorf("getConfig() got = %v, want %v", got, tt.wantValue)
+			}
+			if got1 != tt.wantOk {
+				t.Errorf("getConfig() got1 = %v, want %v", got1, tt.wantOk)
 			}
 		})
 	}
