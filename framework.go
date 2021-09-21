@@ -78,7 +78,9 @@ type factory struct {
 const (
 	// DefaultName is used when registering components without an explicit name.
 	DefaultName    = "default"
-	shutdownSignal = syscall.SIGUSR1
+	// shutdownSignal uses SIGTERM. The SIGTERM signal is sent to a process to request its
+	//termination. It will also be used when Shutdown() is called.
+	shutdownSignal = syscall.SIGTERM
 )
 
 // Phase describes the status of the boot-go instance
@@ -257,12 +259,11 @@ func run(factoryList []factory) ([]*entry, error) {
 
 func shutdownHandler(entries []*entry) {
 	shutdownChannel = make(chan os.Signal, 1)
-	//close(shutdownChannel)
 	go func() {
-		signal.Notify(shutdownChannel, os.Interrupt, os.Kill)
+		signal.Notify(shutdownChannel, syscall.SIGINT, syscall.SIGKILL, shutdownSignal)
 		sig := <-shutdownChannel
 		switch {
-		case sig == os.Interrupt || sig == os.Kill:
+		case sig == syscall.SIGINT || sig == syscall.SIGKILL:
 			Logger.Warn.Printf("caught signal: %s\n", sig.String())
 			Logger.Debug.Printf("shutdown gracefully initiated...\n")
 		case sig == shutdownSignal:
@@ -271,10 +272,10 @@ func shutdownHandler(entries []*entry) {
 		_ = stopComponents(entries)
 		Logger.Info.Printf("shutdown completed\n")
 	}()
-	return
 }
 
-// Shutdown boot-go instance. All components will be stopped.
+// Shutdown boot-go instance. All components will be stopped. This is equivalent with
+// issuing a SIGTERM on process level.
 func Shutdown() {
 	shutdownChannel <- shutdownSignal
 }
