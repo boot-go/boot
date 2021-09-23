@@ -223,5 +223,8 @@ type testableEventBus struct {
 
 // NewTestableEventBus can be used for unit testing.
 func NewTestableEventBus() EventBus {
-	return &testableEventBus{}
+	return &testableEventBus{eventBus{
+		make(map[string][]*eventHandler),
+		sync.RWMutex{},
+	}}
 }
