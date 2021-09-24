@@ -44,7 +44,14 @@ func TestBootWithWireConfig(t *testing.T) {
 	t12 := &envTestStruct12{}
 	t13 := &envTestStruct13{}
 	t14 := &envTestStruct14{}
-	controls := []Component{t1, t2, t3, t4, t5, t6, t7, t8, t9, t10, t11, t12, t13, t14}
+	t15 := &envTestStruct15{}
+	t16 := &envTestStruct16{}
+	t17 := &envTestStruct17{}
+	t18 := &envTestStruct18{}
+	t19 := &envTestStruct19{}
+	controls := []Component{
+		t1, t2, t3, t4, t5, t6, t7, t8, t9, t10, t11, t12, t13, t14, t15, t16, t17, t18, t19,
+	}
 
 	registry := newRegistry()
 	for _, control := range controls {
@@ -170,6 +177,44 @@ func TestBootWithWireConfig(t *testing.T) {
 				B: 42,
 			},
 		},
+		{
+			name:       "default config value with string",
+			controller: t15,
+			setup:      func() {},
+			expected: &envTestStruct15{
+				C: "Hello world",
+			},
+		},
+		{
+			name:       "default config value with special string",
+			controller: t16,
+			setup:      func() {},
+			expected: &envTestStruct16{
+				C: "Hello:world",
+			},
+		},
+		{
+			name:       "default config value with special another string",
+			controller: t17,
+			setup:      func() {},
+			expected: &envTestStruct17{
+				C: "Hello:world:again",
+			},
+		},
+		{
+			name:       "default config value with empty string",
+			controller: t18,
+			setup:      func() {},
+			expected: &envTestStruct18{
+				C: "",
+			},
+		},
+		{
+			name:       "wrong unparsable tag",
+			controller: t19,
+			setup:      func() {},
+			err:        "Error field contains unparsable tag  <envTestStruct19.B `config,key:UNKNOWN:unsupported`>",
+		},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
@@ -195,11 +240,11 @@ func TestBootWithWireConfig(t *testing.T) {
 
 func TestGetConfig(t *testing.T) {
 	type args struct {
-		cfgKey string
-		cmdArgs   []string
+		cfgKey  string
+		cmdArgs []string
 	}
 	tests := []struct {
-		name  string
+		name      string
 		args      args
 		wantValue string
 		wantOk    bool
@@ -372,3 +417,58 @@ type envTestStruct14 struct {
 }
 
 func (t envTestStruct14) Init() {}
+
+type envTestStruct15 struct {
+	a int
+	B int
+	C string `boot:"config,key:UNKNOWN,default:Hello world"`
+	d interface{}
+	e []interface{}
+	F bool
+}
+
+func (t envTestStruct15) Init() {}
+
+type envTestStruct16 struct {
+	a int
+	B int
+	C string `boot:"config,key:UNKNOWN,default:'Hello:world'"`
+	d interface{}
+	e []interface{}
+	F bool
+}
+
+func (t envTestStruct16) Init() {}
+
+type envTestStruct17 struct {
+	a int
+	B int
+	C string `boot:"config,key:UNKNOWN,default:'Hello:world:again'"`
+	d interface{}
+	e []interface{}
+	F bool
+}
+
+func (t envTestStruct17) Init() {}
+
+type envTestStruct18 struct {
+	a int
+	B int
+	C string `boot:"config,key:UNKNOWN,default:''"`
+	d interface{}
+	e []interface{}
+	F bool
+}
+
+func (t envTestStruct18) Init() {}
+
+type envTestStruct19 struct {
+	a int
+	B int `boot:"config,key:UNKNOWN:unsupported"`
+	C string
+	d interface{}
+	e []interface{}
+	F bool
+}
+
+func (t envTestStruct19) Init() {}

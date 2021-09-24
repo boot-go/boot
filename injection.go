@@ -190,16 +190,11 @@ func processConfiguration(reflectedComponent reflect.Value, field reflect.Struct
 	if tag.hasOption(fieldTagWireKey) {
 		if cfgKey := tag.options[fieldTagWireKey]; len(cfgKey) > 0 {
 			if cfgValue, ok := getConfig(cfgKey); ok || hasDefault {
-				if hasDefault {
+				if !ok && hasDefault {
 					cfgValue = defaultCfg
 				}
 				if fieldValue.CanSet() {
-					processConfigString(field, fieldValue, cfgValue, cfgKey)
-					err := processConfigInt(field, reflectedComponent, fieldValue, cfgValue, panicOnFail, cfgKey)
-					if err != nil {
-						return err
-					}
-					err = processConfigBool(field, reflectedComponent, fieldValue, cfgValue, panicOnFail, cfgKey)
+					err := processConfigValue(reflectedComponent, field, fieldValue, cfgValue, cfgKey, panicOnFail)
 					if err != nil {
 						return err
 					}
@@ -221,6 +216,19 @@ func processConfiguration(reflectedComponent reflect.Value, field reflect.Struct
 			err:    "unsupported configuration options found",
 			detail: "<" + reflectedComponent.Type().Name() + "." + field.Name + ">",
 		}
+	}
+	return nil
+}
+
+func processConfigValue(reflectedComponent reflect.Value, field reflect.StructField, fieldValue reflect.Value, cfgValue string, cfgKey string, panicOnFail bool) error {
+	processConfigString(field, fieldValue, cfgValue, cfgKey)
+	err := processConfigInt(field, reflectedComponent, fieldValue, cfgValue, panicOnFail, cfgKey)
+	if err != nil {
+		return err
+	}
+	err = processConfigBool(field, reflectedComponent, fieldValue, cfgValue, panicOnFail, cfgKey)
+	if err != nil {
+		return err
 	}
 	return nil
 }
@@ -302,20 +310,15 @@ func (t *tag) hasOption(name string) bool {
 
 func parseStructTag(tagValue string) (*tag, bool) {
 	options := make(map[string]string)
-	tokens := strings.Split(tagValue, ",")
+	tokens := Split(tagValue, ",", "'")
 	name := strings.TrimSpace(tokens[0])
 	for i, token := range tokens {
 		if i > 0 {
-			subtokens := strings.Split(token, ":")
+			subtokens := Split(token, ":", "'")
 			if len(subtokens) > 0 && len(subtokens) < 3 {
 				key := subtokens[0]
 				if len(subtokens) == 2 {
-					value := subtokens[1]
-					if value != "" {
-						options[key] = value
-					} else {
-						return nil, false
-					}
+					options[key] = strings.Trim(subtokens[1], " '")
 				} else {
 					options[key] = ""
 				}

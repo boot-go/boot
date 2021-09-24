@@ -29,6 +29,7 @@ import (
 	"os"
 	"reflect"
 	gort "runtime"
+	"strings"
 )
 
 // QualifiedName returns the full name of a struct, function or a simple name of a primitive.
@@ -49,6 +50,42 @@ func QualifiedName(v interface{}) string {
 	} else {
 		return "nil"
 	}
+}
+
+// Split returns the tokens separated by sep and ignores content in the quotes.
+// Unfortunately, the regex can't be used to split the string, because Go has limitations.
+func Split(s, sep, quote string) []string {
+	result := []string{}
+	tokens := strings.Split(s, sep)
+	summarizedToken := ""
+	summarizing := false
+	for _, token := range tokens {
+		count := len(strings.Split(token, quote)) - 1
+		if count == 1 || count%2 != 0 {
+			if summarizing {
+				// summarizing completed
+				summarizing = false
+				summarizedToken += sep + token
+			} else {
+				// summarizing started
+				summarizing = true
+				summarizedToken = token
+			}
+		} else {
+			if summarizing {
+				// summarizing ongoing
+				summarizedToken += sep + token
+			} else {
+				// no summarizing at all
+				summarizedToken = token
+			}
+		}
+		if !summarizing {
+			result = append(result, summarizedToken)
+			summarizedToken = ""
+		}
+	}
+	return result
 }
 
 var (

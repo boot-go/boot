@@ -43,7 +43,9 @@ func TestBootWithWire(t *testing.T) {
 	t10 := &testStruct10{}
 	t11 := &testStruct11{}
 	t12 := &testStruct12{}
-	controls := []Component{t1, t2, t3, t4, t5, t6, t7, t8, t9, t10, t11, t12}
+	t13 := &testStruct13{}
+	t14 := &testStruct14{}
+	controls := []Component{t1, t2, t3, t4, t5, t6, t7, t8, t9, t10, t11, t12, t13, t14}
 
 	registry := newRegistry()
 	for _, control := range controls {
@@ -122,7 +124,7 @@ func TestBootWithWire(t *testing.T) {
 			err:        "Error dependency value not found for <unknown:testStruct10.F>",
 		},
 		{
-			name:       "Single injection by unknown name",
+			name:       "Single injection with unparsable name",
 			controller: t11,
 			err:        "Error field contains unparsable tag  <testStruct11.F `wire,name:`>",
 		},
@@ -130,6 +132,16 @@ func TestBootWithWire(t *testing.T) {
 			name:       "Traverse injection failed",
 			controller: t12,
 			err:        "Error field contains unparsable tag  <testStruct11.F `wire,name:`>",
+		},
+		{
+			name:       "Tag format error",
+			controller: t13,
+			err:        "Error field contains unparsable tag  <testStruct13.F `wire,name:default:unsupported`>",
+		},
+		{
+			name:       "Injection failed due tag format error",
+			controller: t14,
+			err:        "Error field contains unparsable tag  <testStruct13.F `wire,name:default:unsupported`>",
 		},
 	}
 	for _, test := range tests {
@@ -143,7 +155,7 @@ func TestBootWithWire(t *testing.T) {
 					t.Fail()
 				}
 			} else {
-				if err == nil || err.Error() != test.err {
+				if err != nil && err.Error() != test.err {
 					t.Fatal(err.Error())
 				}
 			}
@@ -167,21 +179,13 @@ type testStruct1 struct {
 	e []interface{}
 }
 
-func (t testStruct1) do1() {
+func (t testStruct1) do1() {}
 
-}
+func (t testStruct1) Init() {}
 
-func (t testStruct1) Init() {
+func (t testStruct1) Start() {}
 
-}
-
-func (t testStruct1) Start() {
-
-}
-
-func (t testStruct1) Stop() {
-
-}
+func (t testStruct1) Stop() {}
 
 type testStruct2 struct {
 	a int
@@ -192,21 +196,13 @@ type testStruct2 struct {
 	F *testStruct1 `boot:"wire"`
 }
 
-func (t testStruct2) do2() {
+func (t testStruct2) do2() {}
 
-}
+func (t testStruct2) Init() {}
 
-func (t testStruct2) Init() {
+func (t testStruct2) Start() {}
 
-}
-
-func (t testStruct2) Start() {
-
-}
-
-func (t testStruct2) Stop() {
-
-}
+func (t testStruct2) Stop() {}
 
 type testStruct3 struct {
 	a int
@@ -218,17 +214,11 @@ type testStruct3 struct {
 	G *testStruct2 `boot:"wire"`
 }
 
-func (t testStruct3) Init() {
+func (t testStruct3) Init() {}
 
-}
+func (t testStruct3) Start() {}
 
-func (t testStruct3) Start() {
-
-}
-
-func (t testStruct3) Stop() {
-
-}
+func (t testStruct3) Stop() {}
 
 type testStruct4 struct {
 	a int
@@ -239,17 +229,11 @@ type testStruct4 struct {
 	f *testStruct1 `boot:"wire"`
 }
 
-func (t testStruct4) Init() {
+func (t testStruct4) Init() {}
 
-}
+func (t testStruct4) Start() {}
 
-func (t testStruct4) Start() {
-
-}
-
-func (t testStruct4) Stop() {
-
-}
+func (t testStruct4) Stop() {}
 
 type testStruct5 struct {
 	a int
@@ -260,17 +244,11 @@ type testStruct5 struct {
 	F testInterface1 `boot:"wire"`
 }
 
-func (t testStruct5) Init() {
+func (t testStruct5) Init() {}
 
-}
+func (t testStruct5) Start() {}
 
-func (t testStruct5) Start() {
-
-}
-
-func (t testStruct5) Stop() {
-
-}
+func (t testStruct5) Stop() {}
 
 type testStruct6 struct {
 	a int
@@ -281,21 +259,13 @@ type testStruct6 struct {
 	F testInterface2 `boot:"wire"`
 }
 
-func (t testStruct6) do2() {
+func (t testStruct6) do2() {}
 
-}
+func (t testStruct6) Init() {}
 
-func (t testStruct6) Init() {
+func (t testStruct6) Start() {}
 
-}
-
-func (t testStruct6) Start() {
-
-}
-
-func (t testStruct6) Stop() {
-
-}
+func (t testStruct6) Stop() {}
 
 type testStruct7 struct {
 	a int
@@ -306,17 +276,11 @@ type testStruct7 struct {
 	F *string `boot:"wire"`
 }
 
-func (t testStruct7) Init() {
+func (t testStruct7) Init() {}
 
-}
+func (t testStruct7) Start() {}
 
-func (t testStruct7) Start() {
-
-}
-
-func (t testStruct7) Stop() {
-
-}
+func (t testStruct7) Stop() {}
 
 type testStruct8 struct {
 	a int
@@ -327,17 +291,11 @@ type testStruct8 struct {
 	F testStruct1 `boot:"wire"`
 }
 
-func (t testStruct8) Init() {
+func (t testStruct8) Init() {}
 
-}
+func (t testStruct8) Start() {}
 
-func (t testStruct8) Start() {
-
-}
-
-func (t testStruct8) Stop() {
-
-}
+func (t testStruct8) Stop() {}
 
 type testStruct9 struct {
 	a int
@@ -348,9 +306,7 @@ type testStruct9 struct {
 	F *testStruct1 `boot:"wire,name:test"`
 }
 
-func (t testStruct9) Init() {
-
-}
+func (t testStruct9) Init() {}
 
 type testStruct10 struct {
 	a int
@@ -361,9 +317,7 @@ type testStruct10 struct {
 	F *testStruct1 `boot:"wire,name:unknown"`
 }
 
-func (t testStruct10) Init() {
-
-}
+func (t testStruct10) Init() {}
 
 type testStruct11 struct {
 	a int
@@ -386,3 +340,25 @@ type testStruct12 struct {
 }
 
 func (t testStruct12) Init() {}
+
+type testStruct13 struct {
+	a int
+	B int
+	c string
+	d interface{}
+	e []interface{}
+	F *testStruct11 `boot:"wire,name:default:unsupported"`
+}
+
+func (t testStruct13) Init() {}
+
+type testStruct14 struct {
+	a int
+	B int
+	c string
+	d interface{}
+	e []interface{}
+	F *testStruct13 `boot:"wire"`
+}
+
+func (t testStruct14) Init() {}

@@ -77,7 +77,7 @@ type factory struct {
 
 const (
 	// DefaultName is used when registering components without an explicit name.
-	DefaultName    = "default"
+	DefaultName = "default"
 	// shutdownSignal uses SIGTERM. The SIGTERM signal is sent to a process to request its
 	//termination. It will also be used when Shutdown() is called.
 	shutdownSignal = syscall.SIGTERM
