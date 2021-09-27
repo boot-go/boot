@@ -91,3 +91,20 @@ func TestParseStructTag(t *testing.T) {
 		})
 	}
 }
+
+type testerComponentOne struct{}
+
+func (t *testerComponentOne) Init() {}
+
+type testerComponentTwo struct {
+	One *testerComponentOne `boot:"wire"`
+}
+
+func (t *testerComponentTwo) Init() {}
+
+func TestTesterWithMultipleTestComponents(t *testing.T) {
+	err := Test(&testerComponentOne{}, &testerComponentTwo{})
+	if err != nil {
+		t.Errorf("Test failed: %s", err.Error())
+	}
+}

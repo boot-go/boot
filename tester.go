@@ -49,6 +49,7 @@ func testRun(mocks []Component) ([]*entry, error) {
 
 func overrideTestComponent(mocks ...Component) {
 	for _, mock := range mocks {
+		mock := mock
 		factories = override(factories, DefaultName, func() Component {
 			return mock
 		})
@@ -57,6 +58,7 @@ func overrideTestComponent(mocks ...Component) {
 
 func registerTestComponent(mocks ...Component) {
 	for _, mock := range mocks {
+		mock := mock
 		factories = register(factories, DefaultName, func() Component {
 			return mock
 		})

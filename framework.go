@@ -38,18 +38,16 @@ import (
 // They should be fail tolerant, recoverable, agnostic and decent.
 //
 // fail tolerant: Don't stop processing on errors.
-// Example: A http request can still be processed, even when the logging server is not available
-//          anymore.
+// Example: A http request can still be processed, even when the logging server is not available anymore.
 //
 // recoverable: Try to recover from errors.
-// Example: A database component should try to reconnect after lost connection.
+// E.g. a database component should try to reconnect after lost connection.
 //
 // agnostic: Behave the same in any environment.
-// Example: A key-value store component should work on a local development machine the same way as
-//          in a containerized environment.
+// E.g. a key-value store component should work on a local development machine the same way as in a containerized environment.
 //
 // decent: Don't overload the developer with complexity.
-// Example: Keep the interface and events as simple as possible. Less is often more.
+// E.g. keep the interface and events as simple as possible. Less is often more.
 type Component interface {
 	// Init initializes data, set the default configuration, subscribe to events
 	//or performs other kind of configuration.
