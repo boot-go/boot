@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 boot-go
+ * Copyright (c) 2021-2022 boot-go
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -37,16 +37,19 @@ type bootTestComponent struct {
 	stopCalled  bool
 }
 
-func (t *bootTestComponent) Init() {
+func (t *bootTestComponent) Init() error {
 	t.initCalled = true
+	return nil
 }
 
-func (t *bootTestComponent) Start() {
+func (t *bootTestComponent) Start() error {
 	t.startCalled = true
+	return nil
 }
 
-func (t *bootTestComponent) Stop() {
+func (t *bootTestComponent) Stop() error {
 	t.stopCalled = true
+	return nil
 }
 
 type bootProcessesComponent struct {
@@ -54,33 +57,37 @@ type bootProcessesComponent struct {
 	stopped bool
 }
 
-func (t *bootProcessesComponent) Init() {
+func (t *bootProcessesComponent) Init() error {
 	t.block = make(chan bool, 1)
 	t.stopped = false
+	return nil
 }
 
-func (t *bootProcessesComponent) Start() {
+func (t *bootProcessesComponent) Start() error {
 	<-t.block
 	t.stopped = true
+	return nil
 }
 
-func (t *bootProcessesComponent) Stop() {
+func (t *bootProcessesComponent) Stop() error {
 	t.block <- true
 	close(t.block)
+	return nil
 }
 
 type bootMissingDependencyComponent struct {
 	WireFails string `boot:"wire"`
 }
 
-func (t *bootMissingDependencyComponent) Init() {
+func (t *bootMissingDependencyComponent) Init() error {
+	return nil
 }
 
 type bootPanicComponent struct {
 	content interface{}
 }
 
-func (t *bootPanicComponent) Init() {
+func (t *bootPanicComponent) Init() error {
 	panic(t.content)
 }
 
@@ -90,14 +97,15 @@ type bootPhaseComponent struct {
 	phase                   Phase
 }
 
-func (t *bootPhaseComponent) Init() {
+func (t *bootPhaseComponent) Init() error {
 	t.block = make(chan bool, 1)
 	if t.onInit {
 		phase = t.phase
 	}
+	return nil
 }
 
-func (t *bootPhaseComponent) Start() {
+func (t *bootPhaseComponent) Start() error {
 	if t.onStart {
 		phase = t.phase
 	}
@@ -105,13 +113,15 @@ func (t *bootPhaseComponent) Start() {
 		Shutdown()
 		<-t.block
 	}
+	return nil
 }
 
-func (t *bootPhaseComponent) Stop() {
+func (t *bootPhaseComponent) Stop() error {
 	if t.onStop {
 		phase = t.phase
 	}
 	t.block <- true
+	return nil
 }
 
 func TestBootGo(t *testing.T) {
@@ -304,7 +314,13 @@ func TestRegisterWithPanic(t *testing.T) {
 				}
 			}()
 			if tt.args.started {
-				go Test(&bootProcessesComponent{})
+				go func() {
+					err := Test(&bootProcessesComponent{})
+					if err != nil {
+						t.Error("Component test failed")
+						return
+					}
+				}()
 				time.Sleep(2 * time.Second)
 			}
 			RegisterName(tt.args.name, tt.args.create)
@@ -385,7 +401,13 @@ func TestOverrideWithPanic(t *testing.T) {
 				}
 			}()
 			if tt.args.started {
-				go Test(&bootProcessesComponent{})
+				go func() {
+					err := Test(&bootProcessesComponent{})
+					if err != nil {
+						t.Error("Component test failed")
+						return
+					}
+				}()
 				time.Sleep(2 * time.Second)
 			}
 			OverrideName(tt.args.name, tt.args.create)

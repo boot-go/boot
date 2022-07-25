@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 boot-go
+ * Copyright (c) 2021-2022 boot-go
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -50,20 +50,20 @@ import (
 // E.g. keep the interface and events as simple as possible. Less is often more.
 type Component interface {
 	// Init initializes data, set the default configuration, subscribe to events
-	//or performs other kind of configuration.
-	Init()
+	// or performs other kind of configuration.
+	Init() error
 }
 
 // Process is a Component which has a processing functionality. This can be anything like a server,
-// cron job or long running process.
+// cron job or long-running process.
 type Process interface {
 	Component
 	// Start is called as soon as all boot.Component components are initialized. The call should be
 	// blocking until all processing is completed.
-	Start()
+	Start() error
 	// Stop is called to abort the processing and clean up resources. Pay attention that the
 	// processing may already be stopped.
-	Stop()
+	Stop() error
 }
 
 // factory contains a name, some metadata and factory function for a given component.
@@ -77,7 +77,7 @@ const (
 	// DefaultName is used when registering components without an explicit name.
 	DefaultName = "default"
 	// shutdownSignal uses SIGTERM. The SIGTERM signal is sent to a process to request its
-	//termination. It will also be used when Shutdown() is called.
+	// termination. It will also be used when Shutdown() is called.
 	shutdownSignal = syscall.SIGTERM
 )
 
@@ -102,6 +102,7 @@ func (p Phase) String() string {
 
 const (
 	// Initializing is set directly after the application started.
+	// In this phase it is safe to subscribe to events.
 	Initializing Phase = iota
 	// Booting is set when starting the boot framework.
 	Booting
@@ -151,6 +152,8 @@ func nextPhaseAfter(expected Phase) error {
 		newPhase = Stopping
 	case Stopping:
 		newPhase = Exiting
+	case Exiting:
+		// there is no new phase, because it would be exited
 	}
 	defer phaseMutex.Unlock()
 	phaseMutex.Lock()
@@ -217,13 +220,14 @@ func Go() error {
 	s := new(gort.MemStats)
 	gort.ReadMemStats(s)
 	// output some basic info
-	Logger.Info.Printf("booting `boot-go %s` /// %s OS/%s ARCH/%s CPU/%d MEM/%dMB SYS/%dMB\n", version, gort.Version(), gort.GOOS, gort.GOARCH, gort.NumCPU(), (s.Alloc / 1024 / 1024), (s.Sys / 1024 / 1024))
+	const kilobyte = 1024
+	Logger.Info.Printf("booting `boot-go %s` /// %s OS/%s ARCH/%s CPU/%d MEM/%dMB SYS/%dMB\n", version, gort.Version(), gort.GOOS, gort.GOARCH, gort.NumCPU(), s.Alloc/kilobyte/kilobyte, (s.Sys / kilobyte / kilobyte))
 	entries, err := run(factories)
 	Logger.Debug.Printf("boot done with %d components", len(entries))
 	if err == nil {
-		Logger.Info.Printf("shutdown after %s\n", time.Now().Sub(startTime).String())
+		Logger.Info.Printf("shutdown after %s\n", time.Since(startTime).String())
 	} else {
-		Logger.Error.Printf("shutdown after %s with: %s\n", time.Now().Sub(startTime).String(), err.Error())
+		Logger.Error.Printf("shutdown after %s with: %s\n", time.Since(startTime).String(), err.Error())
 	}
 	return err
 }
@@ -258,10 +262,10 @@ func run(factoryList []factory) ([]*entry, error) {
 func shutdownHandler(entries []*entry) {
 	shutdownChannel = make(chan os.Signal, 1)
 	go func() {
-		signal.Notify(shutdownChannel, syscall.SIGINT, syscall.SIGKILL, shutdownSignal)
+		signal.Notify(shutdownChannel, syscall.SIGINT, syscall.SIGTERM, shutdownSignal)
 		sig := <-shutdownChannel
 		switch {
-		case sig == syscall.SIGINT || sig == syscall.SIGKILL:
+		case sig == syscall.SIGINT || sig == syscall.SIGTERM:
 			Logger.Warn.Printf("caught signal: %s\n", sig.String())
 			Logger.Debug.Printf("shutdown gracefully initiated...\n")
 		case sig == shutdownSignal:

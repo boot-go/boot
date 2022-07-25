@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 boot-go
+ * Copyright (c) 2021-2022 boot-go
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -122,8 +122,11 @@ func initComponent(resolveEntry *entry) (err error) {
 			}
 		}
 	}()
-	resolveEntry.component.Init()
-	return nil
+	err = resolveEntry.component.Init()
+	if err != nil {
+		Logger.Error.Printf("Failed to initialize component: %v", err.Error())
+	}
+	return
 }
 
 func processWiring(reg *registry, reflectedComponent reflect.Value, field reflect.StructField, fieldValue reflect.Value, regEntryName string) ([]*entry, error) {
@@ -150,7 +153,8 @@ func processWiring(reg *registry, reflectedComponent reflect.Value, field reflec
 			}
 		}
 	}
-	if len(matchingValues) == 1 {
+	switch len(matchingValues) {
+	case 1:
 		typeName := matchingValues[0].Elem().Type().PkgPath() + "/" + matchingValues[0].Elem().Type().Name()
 		e := reg.entries[typeName][regEntryName]
 		if e.state == Created {
@@ -162,12 +166,12 @@ func processWiring(reg *registry, reflectedComponent reflect.Value, field reflec
 			return entries, nil
 		}
 		fieldValue.Set(reflect.ValueOf(e.component))
-	} else if len(matchingValues) == 0 {
+	case 0:
 		return nil, &DependencyInjectionError{
 			err:    "dependency value not found for",
 			detail: "<" + regEntryName + ":" + reflectedComponent.Type().Name() + "." + field.Name + ">",
 		}
-	} else {
+	default:
 		return nil, &DependencyInjectionError{
 			err:    "multiple dependency values found for",
 			detail: "<" + regEntryName + ":" + reflectedComponent.Type().Name() + "." + field.Name + ">",
@@ -236,7 +240,7 @@ func processConfigValue(reflectedComponent reflect.Value, field reflect.StructFi
 func getConfig(cfgKey string) (string, bool) {
 	key := ""
 	for _, arg := range os.Args {
-		if strings.HasPrefix(arg, "--") && len(arg) > 2 {
+		if strings.HasPrefix(arg, "--") && len(arg) > 2 { //nolint:gocritic // using switch is unsuitebale
 			key = arg[2:]
 		} else if key != "" {
 			if cfgKey == key {
@@ -251,7 +255,7 @@ func getConfig(cfgKey string) (string, bool) {
 
 func processConfigBool(field reflect.StructField, componentValue reflect.Value, fieldValue reflect.Value, cfgValue string, panicOnFail bool, cfg string) error {
 	if field.Type.Name() == "bool" {
-		if fieldValue.Bool() == false {
+		if !fieldValue.Bool() {
 			boolValue, err := strconv.ParseBool(cfgValue)
 			if err != nil {
 				if panicOnFail {
@@ -272,7 +276,9 @@ func processConfigBool(field reflect.StructField, componentValue reflect.Value, 
 func processConfigInt(field reflect.StructField, componentValue reflect.Value, fieldValue reflect.Value, cfgValue string, panicOnFail bool, cfg string) error {
 	if field.Type.Name() == "int" {
 		if fieldValue.Int() == 0 {
-			intValue, err := strconv.ParseInt(cfgValue, 10, 64)
+			const bitSize = 64
+			const base = 10
+			intValue, err := strconv.ParseInt(cfgValue, base, bitSize)
 			if err != nil {
 				if panicOnFail {
 					return &DependencyInjectionError{
@@ -317,7 +323,8 @@ func parseStructTag(tagValue string) (*tag, bool) {
 			subtokens := Split(token, ":", "'")
 			if len(subtokens) > 0 && len(subtokens) < 3 {
 				key := subtokens[0]
-				if len(subtokens) == 2 {
+				const tokenCut = 2
+				if len(subtokens) == tokenCut {
 					options[key] = strings.Trim(subtokens[1], " '")
 				} else {
 					options[key] = ""

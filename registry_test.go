@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 boot-go
+ * Copyright (c) 2021-2022 boot-go
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -30,8 +30,11 @@ import (
 func TestBoot_WhenAddEntry(t *testing.T) {
 	t1 := &testStruct1{}
 	registry := newRegistry()
-	registry.addEntry("test", false, t1)
 	err := registry.addEntry("test", false, t1)
+	if err != nil {
+		t.Errorf("addEntry failed: %v", err.Error())
+	}
+	err = registry.addEntry("test", false, t1)
 	if err.Error() != "go aborted because component github.com/boot-go/boot/testStruct1 already registered under the name 'test'" {
 		t.Fail()
 	}
@@ -40,8 +43,11 @@ func TestBoot_WhenAddEntry(t *testing.T) {
 func TestBoot_WhenAddOverrideEntry(t *testing.T) {
 	t1 := &testStruct1{}
 	registry := newRegistry()
-	registry.addEntry("test", false, t1)
-	err := registry.addEntry("test", true, t1)
+	err := registry.addEntry("test", false, t1)
+	if err != nil {
+		t.Errorf("addEntry failed: %v", err.Error())
+	}
+	err = registry.addEntry("test", true, t1)
 	if err != nil {
 		t.Fail()
 	}

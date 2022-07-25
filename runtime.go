@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 boot-go
+ * Copyright (c) 2021-2022 boot-go
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -41,14 +41,16 @@ const (
 	// StandardFlag is set when the component is started in unit test mode.
 	StandardFlag Flag = "standard"
 	// UnitTestFlag is set when the component is started in unit test mode.
-	UnitTestFlag Flag = "unit test"
+	UnitTestFlag Flag = "unitTest"
 	// FunctionalTestFlag is set when the component is started in functional test mode.
-	FunctionalTestFlag Flag = "functional test"
+	FunctionalTestFlag Flag = "functionalTest"
 )
 
 var _ Component = (*runtime)(nil) // Verify conformity to Component
 
-func (r *runtime) Init() {}
+func (r *runtime) Init() error {
+	return nil
+}
 
 func (r *runtime) HasFlag(mode Flag) bool {
 	for _, m := range r.modes {

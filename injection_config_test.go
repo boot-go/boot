@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 boot-go
+ * Copyright (c) 2021-2022 boot-go
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -29,6 +29,7 @@ import (
 	"testing"
 )
 
+//nolint:funlen // Testdata
 func TestBootWithWireConfig(t *testing.T) {
 	t1 := &envTestStruct1{}
 	t2 := &envTestStruct2{}
@@ -55,7 +56,10 @@ func TestBootWithWireConfig(t *testing.T) {
 
 	registry := newRegistry()
 	for _, control := range controls {
-		registry.addEntry(DefaultName, false, control)
+		err := registry.addEntry(DefaultName, false, control)
+		if err != nil {
+			Logger.Error.Printf("registry.addEntry() failed: %v", err)
+		}
 	}
 
 	getEntry := func(c *Component) *entry {
@@ -229,10 +233,8 @@ func TestBootWithWireConfig(t *testing.T) {
 				if !reflect.DeepEqual(test.controller, test.expected) {
 					t.Fail()
 				}
-			} else {
-				if err != nil && err.Error() != test.err {
-					t.Fatal(err.Error())
-				}
+			} else if err != nil && err.Error() != test.err {
+				t.Fatal(err.Error())
 			}
 		})
 	}
@@ -268,6 +270,7 @@ func TestGetConfig(t *testing.T) {
 	}
 }
 
+//nolint:unused // for testing purpose nolint:unused
 type envTestStruct1 struct {
 	a int
 	B int
@@ -276,10 +279,11 @@ type envTestStruct1 struct {
 	e []interface{}
 }
 
-func (t envTestStruct1) Init() {}
+func (t envTestStruct1) Init() error { return nil }
 
 func (t envTestStruct1) do1() {}
 
+//nolint:unused // for testing purpose nolint:unused
 type envTestStruct2 struct {
 	a int
 	B int
@@ -290,8 +294,9 @@ type envTestStruct2 struct {
 
 func (t envTestStruct2) do2() {}
 
-func (t envTestStruct2) Init() {}
+func (t envTestStruct2) Init() error { return nil }
 
+//nolint:unused // for testing purpose nolint:unused
 type envTestStruct3 struct {
 	a int
 	B int
@@ -300,8 +305,9 @@ type envTestStruct3 struct {
 	e []interface{}
 }
 
-func (t envTestStruct3) Init() {}
+func (t envTestStruct3) Init() error { return nil }
 
+//nolint:unused // for testing purpose nolint:unused
 type envTestStruct4 struct {
 	a int
 	B int
@@ -310,8 +316,9 @@ type envTestStruct4 struct {
 	e []interface{}
 }
 
-func (t envTestStruct4) Init() {}
+func (t envTestStruct4) Init() error { return nil }
 
+//nolint:unused // for testing purpose nolint:unused
 type envTestStruct5 struct {
 	a int
 	B int
@@ -320,8 +327,9 @@ type envTestStruct5 struct {
 	e []interface{}
 }
 
-func (t envTestStruct5) Init() {}
+func (t envTestStruct5) Init() error { return nil }
 
+//nolint:unused // for testing purpose nolint:unused
 type envTestStruct6 struct {
 	a int
 	B int
@@ -330,8 +338,9 @@ type envTestStruct6 struct {
 	e []interface{}
 }
 
-func (t envTestStruct6) Init() {}
+func (t envTestStruct6) Init() error { return nil }
 
+//nolint:unused // for testing purpose nolint:unused
 type envTestStruct7 struct {
 	a int
 	B int `boot:"config,key:t7"`
@@ -340,8 +349,9 @@ type envTestStruct7 struct {
 	e []interface{}
 }
 
-func (t envTestStruct7) Init() {}
+func (t envTestStruct7) Init() error { return nil }
 
+//nolint:unused // for testing purpose nolint:unused
 type envTestStruct8 struct {
 	a int
 	B int `boot:"config,key:t8,panic"`
@@ -350,8 +360,9 @@ type envTestStruct8 struct {
 	e []interface{}
 }
 
-func (t envTestStruct8) Init() {}
+func (t envTestStruct8) Init() error { return nil }
 
+//nolint:unused // for testing purpose nolint:unused
 type envTestStruct9 struct {
 	a int
 	B int
@@ -361,8 +372,9 @@ type envTestStruct9 struct {
 	F bool `boot:"config,key:t9,panic"`
 }
 
-func (t envTestStruct9) Init() {}
+func (t envTestStruct9) Init() error { return nil }
 
+//nolint:unused // for testing purpose nolint:unused
 type envTestStruct10 struct {
 	a int
 	B int
@@ -372,8 +384,9 @@ type envTestStruct10 struct {
 	F bool `boot:"config,key:t10,panic"`
 }
 
-func (t envTestStruct10) Init() {}
+func (t envTestStruct10) Init() error { return nil }
 
+//nolint:unused // for testing purpose nolint:unused
 type envTestStruct11 struct {
 	a int
 	B int
@@ -383,8 +396,9 @@ type envTestStruct11 struct {
 	F bool `boot:"config,key:t11"`
 }
 
-func (t envTestStruct11) Init() {}
+func (t envTestStruct11) Init() error { return nil }
 
+//nolint:unused // for testing purpose nolint:unused
 type envTestStruct12 struct {
 	a int
 	B int `boot:"config,key:t12"`
@@ -394,8 +408,9 @@ type envTestStruct12 struct {
 	F bool
 }
 
-func (t envTestStruct12) Init() {}
+func (t envTestStruct12) Init() error { return nil }
 
+//nolint:unused // for testing purpose nolint:unused
 type envTestStruct13 struct {
 	a int
 	B int `boot:"config,key"`
@@ -405,8 +420,9 @@ type envTestStruct13 struct {
 	F bool
 }
 
-func (t envTestStruct13) Init() {}
+func (t envTestStruct13) Init() error { return nil }
 
+//nolint:unused // for testing purpose nolint:unused
 type envTestStruct14 struct {
 	a int
 	B int `boot:"config,key:UNKNOWN,default:42"`
@@ -416,8 +432,9 @@ type envTestStruct14 struct {
 	F bool
 }
 
-func (t envTestStruct14) Init() {}
+func (t envTestStruct14) Init() error { return nil }
 
+//nolint:unused // for testing purpose nolint:unused
 type envTestStruct15 struct {
 	a int
 	B int
@@ -427,8 +444,9 @@ type envTestStruct15 struct {
 	F bool
 }
 
-func (t envTestStruct15) Init() {}
+func (t envTestStruct15) Init() error { return nil }
 
+//nolint:unused // for testing purpose nolint:unused
 type envTestStruct16 struct {
 	a int
 	B int
@@ -438,8 +456,9 @@ type envTestStruct16 struct {
 	F bool
 }
 
-func (t envTestStruct16) Init() {}
+func (t envTestStruct16) Init() error { return nil }
 
+//nolint:unused // for testing purpose nolint:unused
 type envTestStruct17 struct {
 	a int
 	B int
@@ -449,8 +468,9 @@ type envTestStruct17 struct {
 	F bool
 }
 
-func (t envTestStruct17) Init() {}
+func (t envTestStruct17) Init() error { return nil }
 
+//nolint:unused // for testing purpose nolint:unused
 type envTestStruct18 struct {
 	a int
 	B int
@@ -460,8 +480,9 @@ type envTestStruct18 struct {
 	F bool
 }
 
-func (t envTestStruct18) Init() {}
+func (t envTestStruct18) Init() error { return nil }
 
+//nolint:unused // for testing purpose nolint:unused
 type envTestStruct19 struct {
 	a int
 	B int `boot:"config,key:UNKNOWN:unsupported"`
@@ -471,4 +492,4 @@ type envTestStruct19 struct {
 	F bool
 }
 
-func (t envTestStruct19) Init() {}
+func (t envTestStruct19) Init() error { return nil }

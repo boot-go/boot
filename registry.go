@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 boot-go
+ * Copyright (c) 2021-2022 boot-go
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -31,7 +31,7 @@ import (
 // registry contains all created component instances.
 type registry struct {
 	// entries are organized in hierarchy, using the component name, instance name and containing
-	//the entry.
+	// the entry.
 	entries map[string]map[string]*entry
 	// executionWaitGroup tracks the amount off active components
 	executionWaitGroup sync.WaitGroup
@@ -115,20 +115,23 @@ func (r *registry) waitUntilAllComponentsStopped() {
 }
 
 // getFullName() return the instance name with name of the component separated by a colon.
-//E.g. default:github.com/boot-go/boot/boot/runtime
+// E.g. default:github.com/boot-go/boot/boot/runtime
 func (e *entry) getFullName() string {
 	return e.name + ":" + QualifiedName(e.component)
 }
 
 // start will call the start function inside Component, if it is not nil
 func (e *entry) start() {
-	if runnable, ok := e.component.(Process); ok {
+	if process, ok := e.component.(Process); ok {
 		e.stateChangeMutex.Lock()
 		if e.state == Initialized {
 			e.registry.executionWaitGroup.Add(1)
 			go func() {
 				Logger.Debug.Printf("starting %s", e.getFullName())
-				runnable.Start()
+				err := process.Start()
+				if err != nil {
+					Logger.Error.Printf("process.Start() failed: %v", err)
+				}
 				e.stateChangeMutex.Lock()
 				if e.state == Started {
 					e.state = Stopped
@@ -148,7 +151,10 @@ func (e *entry) stop() {
 		e.stateChangeMutex.Lock()
 		if e.state == Started {
 			Logger.Debug.Printf("stopping %s", e.getFullName())
-			process.Stop()
+			err := process.Stop()
+			if err != nil {
+				Logger.Error.Printf("process.Stop() failed: %v", err)
+			}
 			e.state = Stopped
 			e.registry.executionWaitGroup.Done()
 		}

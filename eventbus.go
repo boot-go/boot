@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 boot-go
+ * Copyright (c) 2021-2022 boot-go
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -32,8 +32,10 @@ import (
 
 // eventBus internal implementation
 type eventBus struct {
-	handlers map[string][]*eventHandler // contains all handler for a given type
-	lock     sync.RWMutex               // a lock for the handler map
+	handlers  map[string][]*eventHandler // contains all handler for a given type
+	lock      sync.RWMutex               // a lock for the handler map
+	isStarted bool
+	queue     []interface{} // the queue which will receive the events until the init phase is  changed
 }
 
 // EventBus provides the ability to decouple components. It is designed as a replacement for direct
@@ -51,10 +53,29 @@ type EventBus interface {
 	HasMessageHandler(event interface{}) bool
 }
 
-var _ Component = (*eventBus)(nil) // Verify conformity to Component
+var _ Process = (*eventBus)(nil) // Verify conformity to Component
 
 // Init is described in the Component interface
-func (bus *eventBus) Init() {
+func (bus *eventBus) Init() error {
+	bus.isStarted = false
+	return nil
+}
+
+func (bus *eventBus) Start() error {
+	bus.isStarted = true
+	// republishing queued events
+	Logger.Debug.Printf("eventbus started with %d queued events\n", len(bus.queue))
+	for _, event := range bus.queue {
+		err := bus.Publish(event)
+		if err != nil {
+			Logger.Error.Printf("event publishing failed: %v", err.Error())
+		}
+	}
+	return nil
+}
+
+func (bus *eventBus) Stop() error {
+	return nil
 }
 
 // eventHandler contains the reference to one subscribed member
@@ -66,8 +87,9 @@ type eventHandler struct {
 // newEventbus returns new an eventBus.
 func newEventbus() *eventBus {
 	return &eventBus{
-		make(map[string][]*eventHandler),
-		sync.RWMutex{},
+		handlers: make(map[string][]*eventHandler),
+		lock:     sync.RWMutex{},
+		queue:    nil,
 	}
 }
 
@@ -170,6 +192,11 @@ func (bus *eventBus) Publish(event interface{}) (err error) {
 		return errors.New("event must not be nil")
 	}
 	eventType = QualifiedName(event)
+	if !bus.isStarted {
+		Logger.Debug.Printf("queuing event %s\n", eventType)
+		bus.queue = append(bus.queue, event)
+		return
+	}
 	Logger.Debug.Printf("publishing event %s\n", eventType)
 	if handlers, ok := bus.handlers[eventType]; ok && 0 < len(handlers) {
 		// Handlers slice may be changed by removeHandler and Unsubscribe during iteration,
@@ -224,7 +251,8 @@ type testableEventBus struct {
 // NewTestableEventBus can be used for unit testing.
 func NewTestableEventBus() EventBus {
 	return &testableEventBus{eventBus{
-		make(map[string][]*eventHandler),
-		sync.RWMutex{},
+		handlers: make(map[string][]*eventHandler),
+		lock:     sync.RWMutex{},
+		queue:    nil,
 	}}
 }

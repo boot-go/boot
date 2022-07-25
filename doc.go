@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 boot-go
+ * Copyright (c) 2021-2022 boot-go
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -23,6 +23,6 @@
 
 package boot
 
-const version = "v1.0.0-rc"
+const version = "v1.0.0-rc.1"
 
 // boot-go is a framework to support component-based development (CBD) using the Go programming language.

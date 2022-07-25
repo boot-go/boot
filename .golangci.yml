@@ -1,0 +1,216 @@
+run:
+  # include test files or not
+  tests: true
+
+linters:
+  enable:
+    # Vet examines Go source code and reports suspicious constructs, such as Printf calls whose arguments do not align with the format string
+    - govet
+    # find unused code
+    - deadcode
+    # simplify source code:
+    - gosimple
+    # govet "on steroids"
+    - staticcheck
+    # Detects when assignments to existing variables are not used
+    - ineffassign
+    # diagnostics for bugs, performance and style issues
+    - gocritic
+    # checks whether HTTP response body is closed successfully
+#    - bodyclose => not supported by go 1.18
+    # finds repeated strings that could be replaced by a constant
+    - goconst
+    # checks the cyclomatic complexity of functions
+    - gocyclo
+    # Errcheck is a program for checking for unchecked errors in go programs. These unchecked errors can be critical bugs in some cases
+    - errcheck
+    # Like the front-end of a Go compiler, parses and type-checks Go code
+    - typecheck
+    # Checks Go code for unused constants, variables, functions and types
+    - unused
+    # bidichk ⚙️	Checks for dangerous unicode character sequences
+    - bidichk
+    # containedctx is a linter that detects struct contained context.Context field
+    - containedctx
+    # contextcheck
+#    - contextcheck // go1.18 issue
+    # Checks that sentinel errors are prefixed with the Err and error types are suffixed with the Error.
+    - errname
+    # checks function and package cyclomatic complexity
+    - cyclop
+    # Checks assignments with too many blank identifiers
+    - dogsled
+    # Tool for code clone detection
+#    - dupl
+    # check for two durations multiplied together
+    - durationcheck
+    # Checks types passed to the json encoding functions. Reports unsupported types and optionally reports occasions, where the check for the returned error can be omitted.
+    - errchkjson
+    # errorlint is a linter for that can be used to find code that will cause problems with the error wrapping scheme introduced in Go 1.13.
+    - errorlint
+    # ⚙️	check exhaustiveness of enum switch statements
+    - exhaustive
+    # checks for pointers to enclosing loop variables
+    - exportloopref
+    # finds forced type assertions
+    - forcetypeassert
+    # 	Tool for detection of long functions
+    - funlen
+    # Computes and checks the cognitive complexity of functions
+    - gocognit
+    # Finds repeated strings that could be replaced by a constant
+    - goconst
+    # Checks is file header matches to pattern
+    - goheader
+    # An analyzer to detect magic numbers.
+    - gomnd
+    # Manage the use of 'replace', 'retract', and 'excludes' directives in go.mod.
+    - gomoddirectives
+    # Checks that printf-like functions are named with f at the end
+#    - goprintffuncname => TODO: fix sometime
+    # Inspects source code for security problems
+#    - gosec => TODO: fix me
+    # Enforces consistent import aliases
+    - importas
+    # Accept Interfaces, Return Concrete Types
+#    - ireturn => TODO: Try to fix them
+    # Finds slice declarations with non-zero initial length
+    - makezero
+    # Finds commonly misspelled English words in comments
+    - misspell
+    # Finds naked returns in functions greater than a specified function length
+    - nakedret
+    # Reports deeply nested if statements
+#    - nestif => TODO: fix this
+    # Checks that there is no simultaneous return of nil error and an invalid value.
+    - nilnil
+    # Reports ill-formed or insufficient nolint directives
+    - nolintlint
+    # Checks for misuse of Sprintf to construct a host with port in a URL.
+#    - nosprintfhostport => TODO: Fix me
+    # find code that shadows one of Go's predeclared identifiers
+    - predeclared
+    # Checks the struct tags.
+#    - tagliatelle => TODO: fix me
+    # tenv is analyzer that detects using os.Setenv instead of t.Setenv since Go1.17
+    - tenv
+    # Remove unnecessary type conversions
+    - unconvert
+    # checks that the length of a variable's name matches its scope
+#    - varnamelen => TODO: Fix me
+    # Tool for detection of leading and trailing whitespace
+#    - whitespace => TODO: Fix me
+  disable:
+    # Finds unused struct fields
+    - structcheck
+
+
+linters-settings:
+  gosimple:
+    go: "1.18"
+  staticcheck:
+    go: "1.18"
+  decorder:
+    # Required order of `type`, `const`, `var` and `func` declarations inside a file.
+    # Default: types before constants before variables before functions.
+    dec-order:
+      - type
+      - const
+      - var
+      - func
+    # If true, order of declarations is not checked at all.
+    # Default: true (disabled)
+    disable-dec-order-check: false
+    # If true, `init` func can be anywhere in file (does not have to be declared before all other functions).
+    # Default: true (disabled)
+    disable-init-func-first-check: false
+    # If true, multiple global `type`, `const` and `var` declarations are allowed.
+    # Default: true (disabled)
+    disable-dec-num-check: false
+  funlen:
+    # Checks the number of lines in a function.
+    # If lower than 0, disable the check.
+    # Default: 60
+    lines: 80
+    # Checks the number of statements in a function.
+    # If lower than 0, disable the check.
+    # Default: 40
+    statements: 50
+  goheader:
+    # The template use for checking.
+    # Default: ""
+    template: ""
+  nolintlint:
+    # Disable to ensure that all nolint directives actually have an effect.
+    # Default: false
+    allow-unused: false
+    # Disable to ensure that nolint directives don't have a leading space.
+    # Default: true
+    allow-leading-space: false
+    # Exclude following linters from requiring an explanation.
+    # Default: []
+    allow-no-explanation: []
+    # Enable to require an explanation of nonzero length after each nolint directive.
+    # Default: false
+    require-explanation: true
+    # Enable to require nolint directives to mention the specific linter being suppressed.
+    # Default: false
+    require-specific: true
+  varnamelen:
+    # The longest distance, in source lines, that is being considered a "small scope".
+    # Variables used in at most this many lines will be ignored.
+    # Default: 5
+    max-distance: 20
+    # The minimum length of a variable's name that is considered "long".
+    # Variable names that are at least this long will be ignored.
+    # Default: 3
+    min-name-length: 2
+    # Check method receivers.
+    # Default: false
+    check-receiver: true
+    # Check named return values.
+    # Default: false
+    check-return: true
+    # Check type parameters.
+    # Default: false
+    check-type-param: true
+    # Ignore "ok" variables that hold the bool return value of a type assertion.
+    # Default: false
+    ignore-type-assert-ok: true
+    # Ignore "ok" variables that hold the bool return value of a map index.
+    # Default: false
+    ignore-map-index-ok: true
+    # Ignore "ok" variables that hold the bool return value of a channel receive.
+    # Default: false
+    ignore-chan-recv-ok: true
+    # Optional list of variable names that should be ignored completely.
+    # Default: []
+    ignore-names:
+      - err
+    # Optional list of variable declarations that should be ignored completely.
+    # Entries must be in one of the following forms (see below for examples):
+    # - for variables, parameters, named return values, method receivers, or type parameters:
+    #   <name> <type>  (<type> can also be a pointer/slice/map/chan/...)
+    # - for constants: const <name>
+    #
+    # Default: []
+    ignore-decls:
+      - c echo.Context
+      - t testing.T
+      - f *foo.Bar
+      - e error
+      - i int
+      - const C
+      - T any
+      - m map[string]int
+  cyclop:
+    # The maximal code complexity to report.
+    # Default: 10
+    max-complexity: 15
+    # The maximal average package complexity.
+    # If it's higher than 0.0 (float) the check is enabled
+    # Default: 0.0
+    package-average: 2.5
+    # Should ignore tests.
+    # Default: false
+    skip-tests: true

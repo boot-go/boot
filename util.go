@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 boot-go
+ * Copyright (c) 2021-2022 boot-go
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -36,11 +36,12 @@ import (
 func QualifiedName(v interface{}) string {
 	t := reflect.TypeOf(v)
 	if t != nil {
-		if t.Kind() == reflect.Ptr {
+		switch t.Kind() { //nolint:exhaustive // all others are covered by default
+		case reflect.Ptr:
 			return t.Elem().PkgPath() + "/" + t.Elem().Name()
-		} else if t.Kind() == reflect.Func {
+		case reflect.Func:
 			return gort.FuncForPC(reflect.ValueOf(v).Pointer()).Name()
-		} else {
+		default:
 			pkg := t.PkgPath()
 			if pkg != "" {
 				pkg += "/"
@@ -102,7 +103,7 @@ var (
 func init() {
 	Logger.Debug = log.New(os.Stdout, "boot.debug ", log.LstdFlags|log.Lmsgprefix)
 	Logger.Debug.SetOutput(ioutil.Discard)
-	Logger.Info = log.New(os.Stdout, "boot..info ", log.LstdFlags|log.Lmsgprefix)
-	Logger.Warn = log.New(os.Stdout, "boot..warn ", log.LstdFlags|log.Lmsgprefix)
+	Logger.Info = log.New(os.Stdout, "boot.info ", log.LstdFlags|log.Lmsgprefix)
+	Logger.Warn = log.New(os.Stdout, "boot.warn ", log.LstdFlags|log.Lmsgprefix)
 	Logger.Error = log.New(os.Stdout, "boot.error ", log.LstdFlags|log.Lmsgprefix)
 }

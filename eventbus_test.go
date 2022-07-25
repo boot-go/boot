@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 boot-go
+ * Copyright (c) 2021-2022 boot-go
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -53,7 +53,10 @@ func TestEventbusHasCallback(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			bus := newEventbus()
 			if tc.topic != nil {
-				bus.Subscribe(func(event testEvent) {})
+				err := bus.Subscribe(func(event testEvent) {})
+				if err != nil {
+					t.Errorf("eventBus.Subscribe() failed with %v", err)
+				}
 			}
 			hasCallback := bus.HasMessageHandler(tc.topic)
 			if hasCallback != !tc.wantErr {
@@ -156,7 +159,11 @@ func TestEventbusPublish(t *testing.T) {
 	for _, tc := range testcases {
 		t.Run(tc.name, func(t *testing.T) {
 			bus := newEventbus()
-			err := bus.Subscribe(tc.topic)
+			err := bus.Start()
+			if err != nil {
+				t.Errorf("failed to start event bus: %v", err)
+			}
+			err = bus.Subscribe(tc.topic)
 			if err != nil {
 				t.Errorf("eventBus.subscribe() error = %v", err)
 			}
@@ -183,8 +190,12 @@ func TestEventbusPublishMultipleEvents(t *testing.T) {
 	for _, tc := range testcases {
 		t.Run(tc.name, func(t *testing.T) {
 			bus := newEventbus()
+			err := bus.Start()
+			if err != nil {
+				t.Errorf("failed to start event bus: %v", err)
+			}
 			counter := 0
-			err := bus.Subscribe(func(event testEvent) {
+			err = bus.Subscribe(func(event testEvent) {
 				time.Sleep(time.Duration(rand.Intn(500)) * time.Millisecond)
 				counter++
 			})
@@ -193,7 +204,12 @@ func TestEventbusPublishMultipleEvents(t *testing.T) {
 			}
 
 			for i := 0; i < events; i++ {
-				go bus.Publish(testEvent{})
+				go func() {
+					err := bus.Publish(testEvent{})
+					if err != nil {
+						t.Errorf("bus.Publish() failed with %v", err)
+					}
+				}()
 			}
 
 			hasCallback := bus.HasMessageHandler(testEvent{})
@@ -268,8 +284,11 @@ func TestEventbusUnsubscribe(t *testing.T) {
 	for _, tc := range testcases {
 		t.Run(tc.name, func(t *testing.T) {
 			bus := newEventbus()
-			bus.Subscribe(tc.event)
-			err := bus.Unsubscribe(tc.eventHandler)
+			err := bus.Subscribe(tc.event)
+			if err != nil {
+				t.Errorf("bus.Subscribe() failed: %v", err)
+			}
+			err = bus.Unsubscribe(tc.eventHandler)
 			if (err != nil) != tc.wantErr {
 				t.Fail()
 			}

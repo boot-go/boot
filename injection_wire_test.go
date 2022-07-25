@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 boot-go
+ * Copyright (c) 2021-2022 boot-go
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -28,6 +28,7 @@ import (
 	"testing"
 )
 
+//nolint:funlen // Testdata
 func TestBootWithWire(t *testing.T) {
 	setupTest()
 
@@ -49,9 +50,15 @@ func TestBootWithWire(t *testing.T) {
 
 	registry := newRegistry()
 	for _, control := range controls {
-		registry.addEntry(DefaultName, false, control)
+		err := registry.addEntry(DefaultName, false, control)
+		if err != nil {
+			Logger.Error.Printf("registry.addEntry() failed: %v", err)
+		}
 	}
-	registry.addEntry("test", false, t1)
+	err := registry.addEntry("test", false, t1)
+	if err != nil {
+		Logger.Error.Printf("registry.addEntry() failed: %v", err)
+	}
 
 	getEntry := func(c *Component) *entry {
 		cmpName := QualifiedName(*c)
@@ -154,10 +161,8 @@ func TestBootWithWire(t *testing.T) {
 				if !reflect.DeepEqual(test.controller, test.expected) {
 					t.Fail()
 				}
-			} else {
-				if err != nil && err.Error() != test.err {
-					t.Fatal(err.Error())
-				}
+			} else if err != nil && err.Error() != test.err {
+				t.Fatal(err.Error())
 			}
 		})
 	}
@@ -171,6 +176,7 @@ type testInterface2 interface {
 	do2()
 }
 
+//nolint:unused // for testing purpose nolint:unused
 type testStruct1 struct {
 	a int
 	B int
@@ -181,12 +187,13 @@ type testStruct1 struct {
 
 func (t testStruct1) do1() {}
 
-func (t testStruct1) Init() {}
+func (t testStruct1) Init() error { return nil }
 
-func (t testStruct1) Start() {}
+func (t testStruct1) Start() error { return nil }
 
-func (t testStruct1) Stop() {}
+func (t testStruct1) Stop() error { return nil }
 
+//nolint:unused // for testing purpose nolint:unused
 type testStruct2 struct {
 	a int
 	B int
@@ -198,58 +205,62 @@ type testStruct2 struct {
 
 func (t testStruct2) do2() {}
 
-func (t testStruct2) Init() {}
+func (t testStruct2) Init() error { return nil }
 
-func (t testStruct2) Start() {}
+func (t testStruct2) Start() error { return nil }
 
-func (t testStruct2) Stop() {}
+func (t testStruct2) Stop() error { return nil }
 
+//nolint:unused // for testing purpose nolint:unused
 type testStruct3 struct {
 	a int
 	B int
 	c string
 	d interface{}
-	e []interface{}
-	F *testStruct1 `boot:"wire"`
-	G *testStruct2 `boot:"wire"`
+	e []interface{} //nolint:unused // for testing purpose nolint:unused
+	F *testStruct1  `boot:"wire"`
+	G *testStruct2  `boot:"wire"`
 }
 
-func (t testStruct3) Init() {}
+func (t testStruct3) Init() error { return nil }
 
-func (t testStruct3) Start() {}
+func (t testStruct3) Start() error { return nil }
 
-func (t testStruct3) Stop() {}
+func (t testStruct3) Stop() error { return nil }
 
+//nolint:unused // for testing purpose nolint:unused
 type testStruct4 struct {
-	a int
+	a int //nolint:unused // for testing purpose nolint:unused
 	B int
 	c string
 	d interface{}
 	e []interface{}
-	f *testStruct1 `boot:"wire"`
+	f *testStruct1 `boot:"wire"` //nolint:unused // for testing purpose nolint:unused
 }
 
-func (t testStruct4) Init() {}
+func (t testStruct4) Init() error { return nil }
 
-func (t testStruct4) Start() {}
+func (t testStruct4) Start() error { return nil }
 
-func (t testStruct4) Stop() {}
+func (t testStruct4) Stop() error { return nil }
 
+//nolint:unused // for testing purpose nolint:unused
 type testStruct5 struct {
 	a int
 	B int
-	c string
+	c string //nolint:unused // for testing purpose nolint:unused
 	d interface{}
 	e []interface{}
 	F testInterface1 `boot:"wire"`
 }
 
-func (t testStruct5) Init() {}
+func (t testStruct5) Init() error { return nil }
 
-func (t testStruct5) Start() {}
+func (t testStruct5) Start() error { return nil }
 
-func (t testStruct5) Stop() {}
+func (t testStruct5) Stop() error { return nil }
 
+//nolint:unused // for testing purpose nolint:unused
 type testStruct6 struct {
 	a int
 	B int
@@ -261,12 +272,13 @@ type testStruct6 struct {
 
 func (t testStruct6) do2() {}
 
-func (t testStruct6) Init() {}
+func (t testStruct6) Init() error { return nil }
 
-func (t testStruct6) Start() {}
+func (t testStruct6) Start() error { return nil }
 
-func (t testStruct6) Stop() {}
+func (t testStruct6) Stop() error { return nil }
 
+//nolint:unused // for testing purpose nolint:unused
 type testStruct7 struct {
 	a int
 	B int
@@ -276,12 +288,13 @@ type testStruct7 struct {
 	F *string `boot:"wire"`
 }
 
-func (t testStruct7) Init() {}
+func (t testStruct7) Init() error { return nil }
 
-func (t testStruct7) Start() {}
+func (t testStruct7) Start() error { return nil }
 
-func (t testStruct7) Stop() {}
+func (t testStruct7) Stop() error { return nil }
 
+//nolint:unused // for testing purpose nolint:unused
 type testStruct8 struct {
 	a int
 	B int
@@ -291,12 +304,13 @@ type testStruct8 struct {
 	F testStruct1 `boot:"wire"`
 }
 
-func (t testStruct8) Init() {}
+func (t testStruct8) Init() error { return nil }
 
-func (t testStruct8) Start() {}
+func (t testStruct8) Start() error { return nil }
 
-func (t testStruct8) Stop() {}
+func (t testStruct8) Stop() error { return nil }
 
+//nolint:unused // for testing purpose nolint:unused
 type testStruct9 struct {
 	a int
 	B int
@@ -306,8 +320,9 @@ type testStruct9 struct {
 	F *testStruct1 `boot:"wire,name:test"`
 }
 
-func (t testStruct9) Init() {}
+func (t testStruct9) Init() error { return nil }
 
+//nolint:unused // for testing purpose nolint:unused
 type testStruct10 struct {
 	a int
 	B int
@@ -317,10 +332,11 @@ type testStruct10 struct {
 	F *testStruct1 `boot:"wire,name:unknown"`
 }
 
-func (t testStruct10) Init() {}
+func (t testStruct10) Init() error { return nil }
 
+//nolint:unused // for testing purpose nolint:unused
 type testStruct11 struct {
-	a int
+	a int //nolint:unused // for testing purpose nolint:unused
 	B int
 	c string
 	d interface{}
@@ -328,10 +344,11 @@ type testStruct11 struct {
 	F *testStruct1 `boot:"wire,name:"`
 }
 
-func (t testStruct11) Init() {}
+func (t testStruct11) Init() error { return nil }
 
+//nolint:unused // for testing purpose nolint:unused
 type testStruct12 struct {
-	a int
+	a int //nolint:unused // for testing purpose nolint:unused
 	B int
 	c string
 	d interface{}
@@ -339,8 +356,9 @@ type testStruct12 struct {
 	F *testStruct11 `boot:"wire,name:default"`
 }
 
-func (t testStruct12) Init() {}
+func (t testStruct12) Init() error { return nil }
 
+//nolint:unused // for testing purpose nolint:unused
 type testStruct13 struct {
 	a int
 	B int
@@ -350,15 +368,16 @@ type testStruct13 struct {
 	F *testStruct11 `boot:"wire,name:default:unsupported"`
 }
 
-func (t testStruct13) Init() {}
+func (t testStruct13) Init() error { return nil }
 
+//nolint:unused // for testing purpose nolint:unused
 type testStruct14 struct {
 	a int
 	B int
 	c string
 	d interface{}
-	e []interface{}
+	e []interface{} //nolint:unused // for testing purpose nolint:unused
 	F *testStruct13 `boot:"wire"`
 }
 
-func (t testStruct14) Init() {}
+func (t testStruct14) Init() error { return nil }
