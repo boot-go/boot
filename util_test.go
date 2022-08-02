@@ -29,7 +29,7 @@ type qualifiedNameComponent struct{}
 
 func TestQualifiedName(t *testing.T) {
 	type args struct {
-		v interface{}
+		v any
 	}
 	tests := []struct {
 		name string

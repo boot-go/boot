@@ -33,7 +33,7 @@ import (
 )
 
 // QualifiedName returns the full name of a struct, function or a simple name of a primitive.
-func QualifiedName(v interface{}) string {
+func QualifiedName(v any) string {
 	t := reflect.TypeOf(v)
 	if t != nil {
 		switch t.Kind() { //nolint:exhaustive // all others are covered by default

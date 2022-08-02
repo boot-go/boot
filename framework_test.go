@@ -84,7 +84,7 @@ func (t *bootMissingDependencyComponent) Init() error {
 }
 
 type bootPanicComponent struct {
-	content interface{}
+	content any
 }
 
 func (t *bootPanicComponent) Init() error {
@@ -167,7 +167,7 @@ func TestBootWithErrorComponent(t *testing.T) {
 
 	tests := []struct {
 		name    string
-		content interface{}
+		content any
 		err     error
 	}{
 		{name: "string content", content: "string content", err: errors.New("initializing default:github.com/boot-go/boot/bootPanicComponent failed with message: string content")},

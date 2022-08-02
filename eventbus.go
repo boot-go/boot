@@ -35,7 +35,7 @@ type eventBus struct {
 	handlers  map[string][]*eventHandler // contains all handler for a given type
 	lock      sync.RWMutex               // a lock for the handler map
 	isStarted bool
-	queue     []interface{} // the queue which will receive the events until the init phase is  changed
+	queue     []any // the queue which will receive the events until the init phase is  changed
 }
 
 // EventBus provides the ability to decouple components. It is designed as a replacement for direct
@@ -43,14 +43,14 @@ type eventBus struct {
 type EventBus interface {
 	// Subscribe subscribes to a message type.
 	// Returns error if handler fails.
-	Subscribe(handler interface{}) error
+	Subscribe(handler any) error
 	// Unsubscribe removes handler defined for a message type.
 	// Returns error if there are no handlers subscribed to the message type.
-	Unsubscribe(handler interface{}) error
+	Unsubscribe(handler any) error
 	// Publish executes handler defined for a message type.
-	Publish(event interface{}) (err error)
+	Publish(event any) (err error)
 	// HasMessageHandler returns true if exists any handler subscribed to the message type.
-	HasMessageHandler(event interface{}) bool
+	HasMessageHandler(event any) bool
 }
 
 var _ Process = (*eventBus)(nil) // Verify conformity to Component
@@ -95,7 +95,7 @@ func newEventbus() *eventBus {
 
 // Subscribe subscribes to a message type.
 // Returns error if `fn` is not a function.
-func (bus *eventBus) Subscribe(handler interface{}) error {
+func (bus *eventBus) Subscribe(handler any) error {
 	if handler == nil {
 		return fmt.Errorf("handler must not be nil")
 	}
@@ -129,7 +129,7 @@ func getEventType(p reflect.Value) (string, error) {
 }
 
 // HasMessageHandler returns true if exists any subscribed message handler.
-func (bus *eventBus) HasMessageHandler(message interface{}) bool {
+func (bus *eventBus) HasMessageHandler(message any) bool {
 	bus.lock.Lock()
 	defer bus.lock.Unlock()
 	eventType := QualifiedName(message)
@@ -142,7 +142,7 @@ func (bus *eventBus) HasMessageHandler(message interface{}) bool {
 
 // Unsubscribe removes handler defined for a message type.
 // Returns error if there are no handlers subscribed to the message type.
-func (bus *eventBus) Unsubscribe(handler interface{}) error {
+func (bus *eventBus) Unsubscribe(handler any) error {
 	if handler == nil {
 		return fmt.Errorf("handler must not be nil")
 	}
@@ -170,7 +170,7 @@ func (bus *eventBus) Unsubscribe(handler interface{}) error {
 }
 
 // Publish executes handler defined for a message type. Any additional argument will be transferred to the handler.
-func (bus *eventBus) Publish(event interface{}) (err error) {
+func (bus *eventBus) Publish(event any) (err error) {
 	// if the bus is processing already, the upcoming messages will be queued
 	var eventType string
 	defer func() {
@@ -226,7 +226,7 @@ func (bus *eventBus) removeHandler(eventType string, index int) bool {
 	return true
 }
 
-func (bus *eventBus) findHandler(eventType string, removingandler interface{}) int {
+func (bus *eventBus) findHandler(eventType string, removingandler any) int {
 	if _, ok := bus.handlers[eventType]; ok {
 		for index, handler := range bus.handlers[eventType] {
 			if handler.qualifiedName == QualifiedName(removingandler) {
@@ -237,7 +237,7 @@ func (bus *eventBus) findHandler(eventType string, removingandler interface{}) i
 	return -1
 }
 
-func (bus *eventBus) prepare(event interface{}) []reflect.Value {
+func (bus *eventBus) prepare(event any) []reflect.Value {
 	callArgs := make([]reflect.Value, 1)
 	callArgs[0] = reflect.ValueOf(event)
 	return callArgs

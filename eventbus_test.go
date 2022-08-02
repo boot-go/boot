@@ -36,7 +36,7 @@ type testEvent struct {
 func TestEventbusHasCallback(t *testing.T) {
 	testcases := []struct {
 		name    string
-		topic   interface{}
+		topic   any
 		wantErr bool
 	}{
 		{
@@ -69,7 +69,7 @@ func TestEventbusHasCallback(t *testing.T) {
 func TestEventbusSubscribe(t *testing.T) {
 	testcases := []struct {
 		name    string
-		topic   interface{}
+		topic   any
 		wantErr bool
 	}{
 		{
@@ -115,8 +115,8 @@ func TestEventbusSubscribe(t *testing.T) {
 func TestEventbusPublish(t *testing.T) {
 	testcases := []struct {
 		name    string
-		event   interface{}
-		topic   interface{}
+		event   any
+		topic   any
 		wantErr bool
 	}{
 		{
@@ -179,7 +179,7 @@ func TestEventbusPublishMultipleEvents(t *testing.T) {
 	const events = 100
 	testcases := []struct {
 		name    string
-		topic   interface{}
+		topic   any
 		wantErr bool
 	}{
 		{
@@ -228,8 +228,8 @@ func TestEventbusUnsubscribe(t *testing.T) {
 	f := func(event testEvent) {}
 	testcases := []struct {
 		name         string
-		event        interface{}
-		eventHandler interface{}
+		event        any
+		eventHandler any
 		wantErr      bool
 	}{
 		{

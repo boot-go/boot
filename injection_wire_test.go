@@ -181,8 +181,8 @@ type testStruct1 struct {
 	a int
 	B int
 	c string
-	d interface{}
-	e []interface{}
+	d any
+	e []any
 }
 
 func (t testStruct1) do1() {}
@@ -198,8 +198,8 @@ type testStruct2 struct {
 	a int
 	B int
 	c string
-	d interface{}
-	e []interface{}
+	d any
+	e []any
 	F *testStruct1 `boot:"wire"`
 }
 
@@ -216,10 +216,10 @@ type testStruct3 struct {
 	a int
 	B int
 	c string
-	d interface{}
-	e []interface{} //nolint:unused // for testing purpose nolint:unused
-	F *testStruct1  `boot:"wire"`
-	G *testStruct2  `boot:"wire"`
+	d any
+	e []any        //nolint:unused // for testing purpose nolint:unused
+	F *testStruct1 `boot:"wire"`
+	G *testStruct2 `boot:"wire"`
 }
 
 func (t testStruct3) Init() error { return nil }
@@ -233,8 +233,8 @@ type testStruct4 struct {
 	a int //nolint:unused // for testing purpose nolint:unused
 	B int
 	c string
-	d interface{}
-	e []interface{}
+	d any
+	e []any
 	f *testStruct1 `boot:"wire"` //nolint:unused // for testing purpose nolint:unused
 }
 
@@ -249,8 +249,8 @@ type testStruct5 struct {
 	a int
 	B int
 	c string //nolint:unused // for testing purpose nolint:unused
-	d interface{}
-	e []interface{}
+	d any
+	e []any
 	F testInterface1 `boot:"wire"`
 }
 
@@ -265,8 +265,8 @@ type testStruct6 struct {
 	a int
 	B int
 	c string
-	d interface{}
-	e []interface{}
+	d any
+	e []any
 	F testInterface2 `boot:"wire"`
 }
 
@@ -283,8 +283,8 @@ type testStruct7 struct {
 	a int
 	B int
 	c string
-	d interface{}
-	e []interface{}
+	d any
+	e []any
 	F *string `boot:"wire"`
 }
 
@@ -299,8 +299,8 @@ type testStruct8 struct {
 	a int
 	B int
 	c string
-	d interface{}
-	e []interface{}
+	d any
+	e []any
 	F testStruct1 `boot:"wire"`
 }
 
@@ -315,8 +315,8 @@ type testStruct9 struct {
 	a int
 	B int
 	c string
-	d interface{}
-	e []interface{}
+	d any
+	e []any
 	F *testStruct1 `boot:"wire,name:test"`
 }
 
@@ -327,8 +327,8 @@ type testStruct10 struct {
 	a int
 	B int
 	c string
-	d interface{}
-	e []interface{}
+	d any
+	e []any
 	F *testStruct1 `boot:"wire,name:unknown"`
 }
 
@@ -339,8 +339,8 @@ type testStruct11 struct {
 	a int //nolint:unused // for testing purpose nolint:unused
 	B int
 	c string
-	d interface{}
-	e []interface{}
+	d any
+	e []any
 	F *testStruct1 `boot:"wire,name:"`
 }
 
@@ -351,8 +351,8 @@ type testStruct12 struct {
 	a int //nolint:unused // for testing purpose nolint:unused
 	B int
 	c string
-	d interface{}
-	e []interface{}
+	d any
+	e []any
 	F *testStruct11 `boot:"wire,name:default"`
 }
 
@@ -363,8 +363,8 @@ type testStruct13 struct {
 	a int
 	B int
 	c string
-	d interface{}
-	e []interface{}
+	d any
+	e []any
 	F *testStruct11 `boot:"wire,name:default:unsupported"`
 }
 
@@ -375,8 +375,8 @@ type testStruct14 struct {
 	a int
 	B int
 	c string
-	d interface{}
-	e []interface{} //nolint:unused // for testing purpose nolint:unused
+	d any
+	e []any         //nolint:unused // for testing purpose nolint:unused
 	F *testStruct13 `boot:"wire"`
 }
 

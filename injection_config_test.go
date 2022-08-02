@@ -275,8 +275,8 @@ type envTestStruct1 struct {
 	a int
 	B int
 	C string `boot:"config,key:t1"`
-	d interface{}
-	e []interface{}
+	d any
+	e []any
 }
 
 func (t envTestStruct1) Init() error { return nil }
@@ -288,8 +288,8 @@ type envTestStruct2 struct {
 	a int
 	B int
 	C string `boot:"config,key:t2"`
-	d interface{}
-	e []interface{}
+	d any
+	e []any
 }
 
 func (t envTestStruct2) do2() {}
@@ -301,8 +301,8 @@ type envTestStruct3 struct {
 	a int
 	B int
 	C string `boot:"config,key:t3,panic"`
-	d interface{}
-	e []interface{}
+	d any
+	e []any
 }
 
 func (t envTestStruct3) Init() error { return nil }
@@ -312,8 +312,8 @@ type envTestStruct4 struct {
 	a int
 	B int
 	C string `bo-ot:"config,key:t1,panic"`
-	d interface{}
-	e []interface{}
+	d any
+	e []any
 }
 
 func (t envTestStruct4) Init() error { return nil }
@@ -323,8 +323,8 @@ type envTestStruct5 struct {
 	a int
 	B int
 	C string `boot:"wi-re,key:t3,panic"`
-	d interface{}
-	e []interface{}
+	d any
+	e []any
 }
 
 func (t envTestStruct5) Init() error { return nil }
@@ -334,8 +334,8 @@ type envTestStruct6 struct {
 	a int
 	B int
 	C string `boot:"config"`
-	d interface{}
-	e []interface{}
+	d any
+	e []any
 }
 
 func (t envTestStruct6) Init() error { return nil }
@@ -345,8 +345,8 @@ type envTestStruct7 struct {
 	a int
 	B int `boot:"config,key:t7"`
 	C string
-	d interface{}
-	e []interface{}
+	d any
+	e []any
 }
 
 func (t envTestStruct7) Init() error { return nil }
@@ -356,8 +356,8 @@ type envTestStruct8 struct {
 	a int
 	B int `boot:"config,key:t8,panic"`
 	C string
-	d interface{}
-	e []interface{}
+	d any
+	e []any
 }
 
 func (t envTestStruct8) Init() error { return nil }
@@ -367,8 +367,8 @@ type envTestStruct9 struct {
 	a int
 	B int
 	C string
-	d interface{}
-	e []interface{}
+	d any
+	e []any
 	F bool `boot:"config,key:t9,panic"`
 }
 
@@ -379,8 +379,8 @@ type envTestStruct10 struct {
 	a int
 	B int
 	C string
-	d interface{}
-	e []interface{}
+	d any
+	e []any
 	F bool `boot:"config,key:t10,panic"`
 }
 
@@ -391,8 +391,8 @@ type envTestStruct11 struct {
 	a int
 	B int
 	C string
-	d interface{}
-	e []interface{}
+	d any
+	e []any
 	F bool `boot:"config,key:t11"`
 }
 
@@ -403,8 +403,8 @@ type envTestStruct12 struct {
 	a int
 	B int `boot:"config,key:t12"`
 	C string
-	d interface{}
-	e []interface{}
+	d any
+	e []any
 	F bool
 }
 
@@ -415,8 +415,8 @@ type envTestStruct13 struct {
 	a int
 	B int `boot:"config,key"`
 	C string
-	d interface{}
-	e []interface{}
+	d any
+	e []any
 	F bool
 }
 
@@ -427,8 +427,8 @@ type envTestStruct14 struct {
 	a int
 	B int `boot:"config,key:UNKNOWN,default:42"`
 	C string
-	d interface{}
-	e []interface{}
+	d any
+	e []any
 	F bool
 }
 
@@ -439,8 +439,8 @@ type envTestStruct15 struct {
 	a int
 	B int
 	C string `boot:"config,key:UNKNOWN,default:Hello world"`
-	d interface{}
-	e []interface{}
+	d any
+	e []any
 	F bool
 }
 
@@ -451,8 +451,8 @@ type envTestStruct16 struct {
 	a int
 	B int
 	C string `boot:"config,key:UNKNOWN,default:'Hello:world'"`
-	d interface{}
-	e []interface{}
+	d any
+	e []any
 	F bool
 }
 
@@ -463,8 +463,8 @@ type envTestStruct17 struct {
 	a int
 	B int
 	C string `boot:"config,key:UNKNOWN,default:'Hello:world:again'"`
-	d interface{}
-	e []interface{}
+	d any
+	e []any
 	F bool
 }
 
@@ -475,8 +475,8 @@ type envTestStruct18 struct {
 	a int
 	B int
 	C string `boot:"config,key:UNKNOWN,default:''"`
-	d interface{}
-	e []interface{}
+	d any
+	e []any
 	F bool
 }
 
@@ -487,8 +487,8 @@ type envTestStruct19 struct {
 	a int
 	B int `boot:"config,key:UNKNOWN:unsupported"`
 	C string
-	d interface{}
-	e []interface{}
+	d any
+	e []any
 	F bool
 }
 
