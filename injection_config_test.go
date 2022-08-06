@@ -56,15 +56,15 @@ func TestBootWithWireConfig(t *testing.T) {
 
 	registry := newRegistry()
 	for _, control := range controls {
-		err := registry.addEntry(DefaultName, false, control)
+		err := registry.addItem(DefaultName, false, control)
 		if err != nil {
-			Logger.Error.Printf("registry.addEntry() failed: %v", err)
+			Logger.Error.Printf("registry.addItem() failed: %v", err)
 		}
 	}
 
-	getEntry := func(c *Component) *entry {
+	getEntry := func(c *Component) *componentManager {
 		cmpName := QualifiedName(*c)
-		return registry.entries[cmpName][DefaultName]
+		return registry.items[cmpName][DefaultName]
 	}
 
 	tests := []struct {

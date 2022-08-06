@@ -24,7 +24,7 @@
 package boot
 
 import (
-	"io/ioutil"
+	"io"
 	"log"
 	"os"
 	"reflect"
@@ -53,10 +53,10 @@ func QualifiedName(v any) string {
 	}
 }
 
-// Split returns the tokens separated by sep and ignores content in the quotes.
+// Split returns the tokens separated by sep and ignores content in the quotes. If the parsing is okay, the bool return value will be true.
 // Unfortunately, the regex can't be used to split the string, because Go has limitations.
-func Split(s, sep, quote string) []string {
-	result := []string{}
+func Split(s, sep, quote string) ([]string, bool) {
+	var result []string
 	tokens := strings.Split(s, sep)
 	summarizedToken := ""
 	summarizing := false
@@ -86,24 +86,44 @@ func Split(s, sep, quote string) []string {
 			summarizedToken = ""
 		}
 	}
-	return result
+	if summarizedToken == "" {
+		return result, true
+	} else {
+		return nil, false
+	}
+}
+
+// logger contains multiple loggers which can be seen as different
+// log levels
+type logger struct {
+	Debug *log.Logger
+	Info  *log.Logger
+	Warn  *log.Logger
+	Error *log.Logger
+}
+
+// Mute will mute the provided logger.
+func (l logger) Mute(logger *log.Logger) {
+	logger.SetOutput(io.Discard)
+}
+
+// Unmute will unmute the provided logger.
+func (l logger) Unmute(logger *log.Logger) {
+	logger.SetOutput(os.Stdout)
 }
 
 var (
 	// Logger contains a debug, info, warning and error logger, which is used for fine-grained log
 	// output. Every logger can be muted or unmuted separately.
-	Logger struct {
-		Debug *log.Logger
-		Info  *log.Logger
-		Warn  *log.Logger
-		Error *log.Logger
-	}
+	// e.g. Logger.Unmute(Logger.Debug)
+	Logger logger
 )
 
 func init() {
 	Logger.Debug = log.New(os.Stdout, "boot.debug ", log.LstdFlags|log.Lmsgprefix)
-	Logger.Debug.SetOutput(ioutil.Discard)
 	Logger.Info = log.New(os.Stdout, "boot.info ", log.LstdFlags|log.Lmsgprefix)
 	Logger.Warn = log.New(os.Stdout, "boot.warn ", log.LstdFlags|log.Lmsgprefix)
 	Logger.Error = log.New(os.Stdout, "boot.error ", log.LstdFlags|log.Lmsgprefix)
+	// default is to mute the debug logger
+	Logger.Mute(Logger.Debug)
 }

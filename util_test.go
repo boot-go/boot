@@ -23,7 +23,10 @@
 
 package boot
 
-import "testing"
+import (
+	"reflect"
+	"testing"
+)
 
 type qualifiedNameComponent struct{}
 
@@ -84,4 +87,108 @@ func TestQualifiedName(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestSplit(t *testing.T) {
+	type args struct {
+		s     string
+		sep   string
+		quote string
+	}
+	tests := []struct {
+		name  string
+		args  args
+		want  []string
+		want1 bool
+	}{
+		{
+			name: "simple",
+			args: args{
+				s:     "'hello,world'",
+				sep:   ",",
+				quote: "'",
+			},
+			want:  []string{"'hello,world'"},
+			want1: true,
+		},
+		{
+			name: "none",
+			args: args{
+				s:     "hello,world",
+				sep:   ",",
+				quote: "'",
+			},
+			want:  []string{"hello", "world"},
+			want1: true,
+		},
+		{
+			name: "two",
+			args: args{
+				s:     "'hello','world'",
+				sep:   ",",
+				quote: "'",
+			},
+			want:  []string{"'hello'", "'world'"},
+			want1: true,
+		},
+		{
+			name: "both",
+			args: args{
+				s:     "'hello,world','here'",
+				sep:   ",",
+				quote: "'",
+			},
+			want:  []string{"'hello,world'", "'here'"},
+			want1: true,
+		},
+		{
+			name: "failure_missing_quote",
+			args: args{
+				s:     "'hello,world,here",
+				sep:   ",",
+				quote: "'",
+			},
+			want:  nil,
+			want1: false,
+		},
+		{
+			name: "failure",
+			args: args{
+				s:     "hello,world,here'",
+				sep:   ",",
+				quote: "'",
+			},
+			want:  nil,
+			want1: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, got1 := Split(tt.args.s, tt.args.sep, tt.args.quote)
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("Split() got = %v, want %v", got, tt.want)
+			}
+			if got1 != tt.want1 {
+				t.Errorf("Split() got1 = %v, want %v", got1, tt.want1)
+			}
+		})
+	}
+}
+
+func TestLoggerMute(t *testing.T) {
+	t.Run("mute test", func(t *testing.T) {
+		Logger.Mute(Logger.Error)
+		Logger.Mute(Logger.Warn)
+		Logger.Mute(Logger.Info)
+		Logger.Mute(Logger.Debug)
+	})
+}
+
+func TestLoggerUnmute(t *testing.T) {
+	t.Run("unmute test", func(t *testing.T) {
+		Logger.Unmute(Logger.Error)
+		Logger.Unmute(Logger.Warn)
+		Logger.Unmute(Logger.Info)
+		Logger.Unmute(Logger.Debug)
+	})
 }

@@ -24,13 +24,14 @@
 package boot
 
 import (
+	"errors"
 	"reflect"
 	"testing"
 )
 
 //nolint:funlen // Testdata
 func TestBootWithWire(t *testing.T) {
-	setupTest()
+	// ts := newTestSession()
 
 	t1 := &testStruct1{}
 	t2 := &testStruct2{}
@@ -46,23 +47,25 @@ func TestBootWithWire(t *testing.T) {
 	t12 := &testStruct12{}
 	t13 := &testStruct13{}
 	t14 := &testStruct14{}
-	controls := []Component{t1, t2, t3, t4, t5, t6, t7, t8, t9, t10, t11, t12, t13, t14}
+	t15 := &testStruct15{}
+	t16 := &testStruct16{}
+	controls := []Component{t1, t2, t3, t4, t5, t6, t7, t8, t9, t10, t11, t12, t13, t14, t15, t16}
 
 	registry := newRegistry()
 	for _, control := range controls {
-		err := registry.addEntry(DefaultName, false, control)
+		err := registry.addItem(DefaultName, false, control)
 		if err != nil {
-			Logger.Error.Printf("registry.addEntry() failed: %v", err)
+			Logger.Error.Printf("registry.addItem() failed: %v", err)
 		}
 	}
-	err := registry.addEntry("test", false, t1)
+	err := registry.addItem("test", false, t1)
 	if err != nil {
-		Logger.Error.Printf("registry.addEntry() failed: %v", err)
+		Logger.Error.Printf("registry.addItem() failed: %v", err)
 	}
 
-	getEntry := func(c *Component) *entry {
+	getEntry := func(c *Component) *componentManager {
 		cmpName := QualifiedName(*c)
-		return registry.entries[cmpName][DefaultName]
+		return registry.items[cmpName][DefaultName]
 	}
 
 	tests := []struct {
@@ -150,11 +153,21 @@ func TestBootWithWire(t *testing.T) {
 			controller: t14,
 			err:        "Error field contains unparsable tag  <testStruct13.F `wire,name:default:unsupported`>",
 		},
+		{
+			name:       "Injection failed due init error",
+			controller: t15,
+			err:        "failed to initialize component default:github.com/boot-go/boot/testStruct15 - reason: fail-15",
+		},
+		{
+			name:       "Injection failed due wired init error",
+			controller: t16,
+			err:        "failed to initialize component default:github.com/boot-go/boot/testStruct15 - reason: fail-15",
+		},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			_, err := resolveDependency(getEntry(&test.controller), registry)
-			if len(test.err) == 0 {
+			if test.err == "" {
 				if err != nil {
 					t.Fail()
 				}
@@ -162,7 +175,7 @@ func TestBootWithWire(t *testing.T) {
 					t.Fail()
 				}
 			} else if err != nil && err.Error() != test.err {
-				t.Fatal(err.Error())
+				t.Errorf("error occurred\nexpected: %s\n     got: %v", test.err, err.Error())
 			}
 		})
 	}
@@ -381,3 +394,26 @@ type testStruct14 struct {
 }
 
 func (t testStruct14) Init() error { return nil }
+
+//nolint:unused // for testing purpose nolint:unused
+type testStruct15 struct {
+	a int
+	B int
+	c string
+	d any
+	e []any //nolint:unused // for testing purpose nolint:unused
+}
+
+func (t testStruct15) Init() error { return errors.New("fail-15") }
+
+//nolint:unused // for testing purpose nolint:unused
+type testStruct16 struct {
+	a int
+	B int
+	c string
+	d any
+	e []any         //nolint:unused // for testing purpose nolint:unused
+	F *testStruct15 `boot:"wire"`
+}
+
+func (t testStruct16) Init() error { return nil }

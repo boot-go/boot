@@ -30,11 +30,11 @@ import (
 func TestBoot_WhenAddEntry(t *testing.T) {
 	t1 := &testStruct1{}
 	registry := newRegistry()
-	err := registry.addEntry("test", false, t1)
+	err := registry.addItem("test", false, t1)
 	if err != nil {
-		t.Errorf("addEntry failed: %v", err.Error())
+		t.Errorf("addItem failed: %v", err.Error())
 	}
-	err = registry.addEntry("test", false, t1)
+	err = registry.addItem("test", false, t1)
 	if err.Error() != "go aborted because component github.com/boot-go/boot/testStruct1 already registered under the name 'test'" {
 		t.Fail()
 	}
@@ -43,11 +43,11 @@ func TestBoot_WhenAddEntry(t *testing.T) {
 func TestBoot_WhenAddOverrideEntry(t *testing.T) {
 	t1 := &testStruct1{}
 	registry := newRegistry()
-	err := registry.addEntry("test", false, t1)
+	err := registry.addItem("test", false, t1)
 	if err != nil {
-		t.Errorf("addEntry failed: %v", err.Error())
+		t.Errorf("addItem failed: %v", err.Error())
 	}
-	err = registry.addEntry("test", true, t1)
+	err = registry.addItem("test", true, t1)
 	if err != nil {
 		t.Fail()
 	}

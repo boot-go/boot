@@ -34,7 +34,7 @@ import (
 
 // DependencyInjectionError contains a detail description for the cause of the injection failure
 type DependencyInjectionError struct {
-	err    string
+	error
 	detail string
 }
 
@@ -49,10 +49,10 @@ const (
 )
 
 func (e *DependencyInjectionError) Error() string {
-	return fmt.Sprintf("Error %s %s", e.err, e.detail)
+	return fmt.Sprintf("Error %s %s", e.error.Error(), e.detail)
 }
 
-func resolveDependency(regEntry *entry, reg *registry) (entries []*entry, err error) {
+func resolveDependency(regEntry *componentManager, reg *registry) (entries []*componentManager, err error) {
 	// exit if this component is already initialized
 	if regEntry.state != Created {
 		return entries, nil
@@ -69,7 +69,7 @@ func resolveDependency(regEntry *entry, reg *registry) (entries []*entry, err er
 			parsedTag, ok := parseStructTag(tag)
 			if !ok {
 				return nil, &DependencyInjectionError{
-					err: "field contains unparsable tag",
+					error: errors.New("field contains unparsable tag"),
 					detail: " <" + reflectedComponent.Type().Name() + "." + field.Name +
 						" `" + tag + "`>",
 				}
@@ -91,7 +91,7 @@ func resolveDependency(regEntry *entry, reg *registry) (entries []*entry, err er
 				}
 			default:
 				return nil, &DependencyInjectionError{
-					err: "dependency field has unsupported tag",
+					error: errors.New("dependency field has unsupported tag"),
 					detail: " <" + reflectedComponent.Type().Name() + "." + field.Name +
 						" `" + tag + "`>",
 				}
@@ -99,9 +99,10 @@ func resolveDependency(regEntry *entry, reg *registry) (entries []*entry, err er
 		}
 	}
 	// initialize component
-	Logger.Debug.Printf("initializing %s", regEntry.getFullName())
+	Logger.Debug.Printf("initializing %s\n", regEntry.getFullName())
 	err = initComponent(regEntry)
 	if err != nil {
+		regEntry.state = Failed
 		return
 	}
 	regEntry.state = Initialized
@@ -109,35 +110,35 @@ func resolveDependency(regEntry *entry, reg *registry) (entries []*entry, err er
 	return entries, nil
 }
 
-func initComponent(resolveEntry *entry) (err error) {
+func initComponent(resolveEntry *componentManager) (err error) {
 	defer func() {
 		if r := recover(); r != nil {
 			switch v := r.(type) {
 			case error:
-				err = errors.New("initializing " + resolveEntry.getFullName() + " failed with error: " + v.Error())
+				err = errors.New("initializing " + resolveEntry.getFullName() + " panicked with error: " + v.Error())
 			case string:
-				err = errors.New("initializing " + resolveEntry.getFullName() + " failed with message: " + v)
+				err = errors.New("initializing " + resolveEntry.getFullName() + " panicked with message: " + v)
 			default:
-				err = errors.New("initializing " + resolveEntry.getFullName() + " failed")
+				err = errors.New("initializing " + resolveEntry.getFullName() + " panicked")
 			}
 		}
 	}()
 	err = resolveEntry.component.Init()
 	if err != nil {
-		Logger.Error.Printf("Failed to initialize component: %v", err.Error())
+		return fmt.Errorf("failed to initialize component %s - reason: %w", resolveEntry.getFullName(), err)
 	}
 	return
 }
 
-func processWiring(reg *registry, reflectedComponent reflect.Value, field reflect.StructField, fieldValue reflect.Value, regEntryName string) ([]*entry, error) {
+func processWiring(reg *registry, reflectedComponent reflect.Value, field reflect.StructField, fieldValue reflect.Value, regEntryName string) ([]*componentManager, error) {
 	if fieldValue.Kind() != reflect.Ptr && fieldValue.Kind() != reflect.Interface {
 		return nil, &DependencyInjectionError{
-			err:    "dependency field is not a pointer receiver",
+			error:  errors.New("dependency field is not a pointer receiver"),
 			detail: "<" + reflectedComponent.Type().Name() + "." + field.Name + ">",
 		}
 	}
 	var matchingValues []reflect.Value
-	for _, list := range reg.entries {
+	for _, list := range reg.items {
 		e := list[regEntryName]
 		if e != nil {
 			controlValue := reflect.ValueOf(e.component)
@@ -146,7 +147,7 @@ func processWiring(reg *registry, reflectedComponent reflect.Value, field reflec
 					matchingValues = append(matchingValues, controlValue)
 				} else {
 					return nil, &DependencyInjectionError{
-						err:    "dependency value cannot be set into",
+						error:  errors.New("dependency value cannot be set into"),
 						detail: "<" + reflectedComponent.Type().Name() + "." + field.Name + ">",
 					}
 				}
@@ -156,7 +157,7 @@ func processWiring(reg *registry, reflectedComponent reflect.Value, field reflec
 	switch len(matchingValues) {
 	case 1:
 		typeName := matchingValues[0].Elem().Type().PkgPath() + "/" + matchingValues[0].Elem().Type().Name()
-		e := reg.entries[typeName][regEntryName]
+		e := reg.items[typeName][regEntryName]
 		if e.state == Created {
 			entries, err := resolveDependency(e, reg)
 			if err != nil {
@@ -168,16 +169,16 @@ func processWiring(reg *registry, reflectedComponent reflect.Value, field reflec
 		fieldValue.Set(reflect.ValueOf(e.component))
 	case 0:
 		return nil, &DependencyInjectionError{
-			err:    "dependency value not found for",
+			error:  errors.New("dependency value not found for"),
 			detail: "<" + regEntryName + ":" + reflectedComponent.Type().Name() + "." + field.Name + ">",
 		}
 	default:
 		return nil, &DependencyInjectionError{
-			err:    "multiple dependency values found for",
+			error:  errors.New("multiple dependency values found for"),
 			detail: "<" + regEntryName + ":" + reflectedComponent.Type().Name() + "." + field.Name + ">",
 		}
 	}
-	return []*entry{}, nil // this
+	return []*componentManager{}, nil // this
 }
 
 func processConfiguration(reflectedComponent reflect.Value, field reflect.StructField, fieldValue reflect.Value, tag *tag) error {
@@ -206,7 +207,7 @@ func processConfiguration(reflectedComponent reflect.Value, field reflect.Struct
 			} else {
 				if panicOnFail {
 					return &DependencyInjectionError{
-						err:    "failed to load configuration value for " + cfgKey,
+						error:  errors.New("failed to load configuration value for " + cfgKey),
 						detail: "<" + reflectedComponent.Type().Name() + "." + field.Name + ">",
 					}
 				}
@@ -217,7 +218,7 @@ func processConfiguration(reflectedComponent reflect.Value, field reflect.Struct
 		}
 	} else {
 		return &DependencyInjectionError{
-			err:    "unsupported configuration options found",
+			error:  errors.New("unsupported configuration options found"),
 			detail: "<" + reflectedComponent.Type().Name() + "." + field.Name + ">",
 		}
 	}
@@ -260,7 +261,7 @@ func processConfigBool(field reflect.StructField, componentValue reflect.Value, 
 			if err != nil {
 				if panicOnFail {
 					return &DependencyInjectionError{
-						err:    "failed to load configuration value for " + cfg,
+						error:  errors.New("failed to load configuration value for " + cfg),
 						detail: "<" + componentValue.Type().Name() + "." + field.Name + ">",
 					}
 				}
@@ -282,14 +283,14 @@ func processConfigInt(field reflect.StructField, componentValue reflect.Value, f
 			if err != nil {
 				if panicOnFail {
 					return &DependencyInjectionError{
-						err:    "failed to load configuration value for " + cfg,
+						error:  errors.New("failed to load configuration value for " + cfg),
 						detail: "<" + componentValue.Type().Name() + "." + field.Name + ">",
 					}
 				}
 				Logger.Warn.Printf("failed to parse configuration value %s as integer: %s\n", cfgValue, err)
 			}
 			fieldValue.SetInt(intValue)
-			Logger.Debug.Printf("setting integer configuration  %s=%s\n", cfg, cfgValue)
+			Logger.Debug.Printf("setting integer configuration %s=%s\n", cfg, cfgValue)
 		}
 	}
 	return nil
@@ -314,13 +315,20 @@ func (t *tag) hasOption(name string) bool {
 	return ok
 }
 
+// parseStructTag returns a reference to a Tag if the tagValue string
+// is successfully parsed, which indicated by the second bool return
+// value.
 func parseStructTag(tagValue string) (*tag, bool) {
 	options := make(map[string]string)
-	tokens := Split(tagValue, ",", "'")
+	tokens, ok := Split(tagValue, ",", "'")
+	if !ok {
+		return nil, false
+	}
 	name := strings.TrimSpace(tokens[0])
 	for i, token := range tokens {
 		if i > 0 {
-			subtokens := Split(token, ":", "'")
+			// the split can't fail because the previous split already validates the value
+			subtokens, _ := Split(token, ":", "'")
 			if len(subtokens) > 0 && len(subtokens) < 3 {
 				key := subtokens[0]
 				const tokenCut = 2

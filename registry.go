@@ -28,76 +28,43 @@ import (
 	"sync"
 )
 
-// registry contains all created component instances.
+// registry contains all created component componentManagers.
 type registry struct {
-	// entries are organized in hierarchy, using the component name, instance name and containing
-	// the entry.
-	entries map[string]map[string]*entry
+	// items are organized in hierarchy, using the component name, componentManager name and containing
+	// the componentManager.
+	items map[string]map[string]*componentManager
 	// executionWaitGroup tracks the amount off active components
 	executionWaitGroup sync.WaitGroup
 }
 
-// entry represents a registry entity containing the component with its meta data.
-type entry struct {
-	// component is the running global instance.
-	component Component
-	// state contains the component state.
-	state State
-	// name is used to identify the component.
-	name string
-	// stateChangeMutex to prevent race conditions
-	stateChangeMutex sync.Mutex
-	// registry is the reference where the entry has been stored
-	registry *registry
-}
-
-// State is used to describe the current state of a component instance
-type State int
-
-const (
-	// Created is set directly after the component was created by the provided factory
-	Created State = iota
-	// Initialized is set after the component Init() function was called
-	Initialized
-	// Started is set after the component Start() function was called
-	Started
-	// Stopped is set after the component Stop() function was called
-	Stopped
-)
-
 // newRegistry creates a new component registry.
 func newRegistry() *registry {
 	return &registry{
-		entries:            make(map[string]map[string]*entry),
+		items:              make(map[string]map[string]*componentManager),
 		executionWaitGroup: sync.WaitGroup{},
 	}
 }
 
-// addEntry adds a component instance to the registry.
-func (r *registry) addEntry(name string, override bool, cmp Component) error {
-	e := &entry{
-		name:      name,
-		component: cmp,
-		state:     Created,
-		registry:  r,
-	}
-	id := QualifiedName(cmp)
-	if r.entries[id] == nil {
-		// enter first entry in registry
-		v := make(map[string]*entry)
-		v[name] = e
-		r.entries[id] = v
-		Logger.Debug.Printf("creating %s", e.getFullName())
+// addItem adds a component componentManager to the registry.
+func (reg *registry) addItem(name string, override bool, cmp Component) error {
+	cmpMngr := newComponentManager(name, cmp, &reg.executionWaitGroup)
+	id := cmpMngr.getName()
+	if reg.items[id] == nil {
+		// enter first componentManager in registry
+		v := make(map[string]*componentManager)
+		v[name] = cmpMngr
+		reg.items[id] = v
+		Logger.Debug.Printf("creating %s", cmpMngr.getFullName())
 	} else {
-		registeredComponent := r.entries[id][name]
+		registeredComponent := reg.items[id][name]
 		if registeredComponent == nil {
-			// entries already found, but not for given name
-			r.entries[id][name] = e
-			Logger.Debug.Printf("creating %s\n", e.getFullName())
+			// items already found, but not for given name
+			reg.items[id][name] = cmpMngr
+			Logger.Debug.Printf("creating %s\n", cmpMngr.getFullName())
 		} else {
 			if override {
-				Logger.Debug.Printf("overriding %s\n", e.getFullName())
-				r.entries[id][name] = e
+				Logger.Debug.Printf("overriding %s\n", cmpMngr.getFullName())
+				reg.items[id][name] = cmpMngr
 			} else {
 				// a component exists with the given name
 				return errors.New("go aborted because component " + id + " already registered under the name '" + name + "'")
@@ -107,57 +74,16 @@ func (r *registry) addEntry(name string, override bool, cmp Component) error {
 	return nil
 }
 
-// waitUntilAllComponentsStopped() will wait until all components have stopped processing
-func (r *registry) waitUntilAllComponentsStopped() {
-	Logger.Debug.Printf("wait until all components are stopped...")
-	r.executionWaitGroup.Wait()
-	Logger.Debug.Printf("all components stopped")
-}
-
-// getFullName() return the instance name with name of the component separated by a colon.
-// E.g. default:github.com/boot-go/boot/boot/runtime
-func (e *entry) getFullName() string {
-	return e.name + ":" + QualifiedName(e.component)
-}
-
-// start will call the start function inside Component, if it is not nil
-func (e *entry) start() {
-	if process, ok := e.component.(Process); ok {
-		e.stateChangeMutex.Lock()
-		if e.state == Initialized {
-			e.registry.executionWaitGroup.Add(1)
-			go func() {
-				Logger.Debug.Printf("starting %s", e.getFullName())
-				err := process.Start()
-				if err != nil {
-					Logger.Error.Printf("process.Start() failed: %v", err)
-				}
-				e.stateChangeMutex.Lock()
-				if e.state == Started {
-					e.state = Stopped
-					e.registry.executionWaitGroup.Done()
-				}
-				e.stateChangeMutex.Unlock()
-			}()
-			e.state = Started
-		}
-		e.stateChangeMutex.Unlock()
-	}
-}
-
-// stop will call the stop function inside Component, if it is not nil
-func (e *entry) stop() {
-	if process, ok := e.component.(Process); ok {
-		e.stateChangeMutex.Lock()
-		if e.state == Started {
-			Logger.Debug.Printf("stopping %s", e.getFullName())
-			err := process.Stop()
+func (reg *registry) resolveComponentDependencies() (componentManagers, error) {
+	var entries []*componentManager
+	for _, cmpTypList := range reg.items {
+		for _, entry := range cmpTypList {
+			newEntries, err := resolveDependency(entry, reg)
 			if err != nil {
-				Logger.Error.Printf("process.Stop() failed: %v", err)
+				return nil, err
 			}
-			e.state = Stopped
-			e.registry.executionWaitGroup.Done()
+			entries = append(entries, newEntries...)
 		}
-		e.stateChangeMutex.Unlock()
 	}
+	return entries, nil
 }
