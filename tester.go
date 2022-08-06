@@ -27,40 +27,43 @@ import (
 	"os"
 )
 
-// Test one or more specific components within a unit test.
-func Test(mocks ...Component) error {
-	setupTest()
-	overrideTestComponent(mocks...)
-	_, err := testRun(mocks)
-	return err
+type testSession struct {
+	*Session
 }
 
-func setupTest() {
-	Logger.Info.Printf("setup unit test")
-	setup(UnitTestFlag)
+// newTestSession creates a new session with one or more specific components within a unit test.
+func newTestSession(mocks ...Component) *testSession {
+	ts := &testSession{
+		Session: NewSession(UnitTestFlag),
+	}
 	Logger.Debug.SetOutput(os.Stdout)
+	// ignore error because it can't fail
+	_ = ts.overrideTestComponent(mocks...)
+	return ts
 }
 
-func testRun(mocks []Component) ([]*entry, error) {
-	Logger.Debug.Printf("initializing and running unit test components")
-	entries, err := run(factories)
-	return entries, err
-}
-
-func overrideTestComponent(mocks ...Component) {
+func (ts *testSession) overrideTestComponent(mocks ...Component) error {
 	for _, mock := range mocks {
 		mock := mock
-		factories = override(factories, DefaultName, func() Component {
+		err := ts.register(DefaultName, func() Component {
 			return mock
-		})
+		}, true)
+		if err != nil {
+			return err
+		}
 	}
+	return nil
 }
 
-func registerTestComponent(mocks ...Component) {
+func (ts *testSession) registerTestComponent(mocks ...Component) error {
 	for _, mock := range mocks {
 		mock := mock
-		factories = register(factories, DefaultName, func() Component {
+		err := ts.register(DefaultName, func() Component {
 			return mock
-		})
+		}, false)
+		if err != nil {
+			return err
+		}
 	}
+	return nil
 }

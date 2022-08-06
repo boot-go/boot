@@ -32,28 +32,46 @@ import (
 
 // eventBus internal implementation
 type eventBus struct {
-	handlers  map[string][]*eventHandler // contains all handler for a given type
-	lock      sync.RWMutex               // a lock for the handler map
+	Runtime   Runtime                   `boot:"wire"`
+	handlers  map[string][]*busListener // contains all handler for a given type
+	lock      sync.RWMutex              // a lock for the handler map
 	isStarted bool
 	queue     []any // the queue which will receive the events until the init phase is  changed
 }
+
+// Handler is a function which has one argument. This argument is usually a published event. An error
+// may be optional provided. E.g. func(e MyEvent) err
+type Handler any
+
+// Event is published and can be any type
+type Event any
 
 // EventBus provides the ability to decouple components. It is designed as a replacement for direct
 // methode calls, so components can subscribe for messages produced by other components.
 type EventBus interface {
 	// Subscribe subscribes to a message type.
 	// Returns error if handler fails.
-	Subscribe(handler any) error
+	Subscribe(handler Handler) error
 	// Unsubscribe removes handler defined for a message type.
 	// Returns error if there are no handlers subscribed to the message type.
-	Unsubscribe(handler any) error
+	Unsubscribe(handler Handler) error
 	// Publish executes handler defined for a message type.
-	Publish(event any) (err error)
-	// HasMessageHandler returns true if exists any handler subscribed to the message type.
-	HasMessageHandler(event any) bool
+	Publish(event Event) (err error)
+	// HasHandler returns true if exists any handler subscribed to the message type.
+	HasHandler(event Handler) bool
 }
 
-var _ Process = (*eventBus)(nil) // Verify conformity to Component
+var _ Component = (*eventBus)(nil) // Verify conformity to Component
+
+// errors
+var (
+	ErrHandlerMustNotBeNil = errors.New("handler must not be nil")
+	ErrEventMustNotBeNil   = errors.New("event must not be nil")
+	ErrUnknownEventType    = errors.New("couldn't determiner the message type")
+	ErrHandlerNotFound     = errors.New("handler not found to remove")
+	ErrHandlerNotSupported = errors.New("handler function not supported")
+	ErrPublishEventFailed  = errors.New("publish event failed")
+)
 
 // Init is described in the Component interface
 func (bus *eventBus) Init() error {
@@ -61,33 +79,79 @@ func (bus *eventBus) Init() error {
 	return nil
 }
 
-func (bus *eventBus) Start() error {
+func (bus *eventBus) activate() error {
 	bus.isStarted = true
 	// republishing queued events
 	Logger.Debug.Printf("eventbus started with %d queued events\n", len(bus.queue))
+	pubErr := newPublicError()
 	for _, event := range bus.queue {
 		err := bus.Publish(event)
 		if err != nil {
-			Logger.Error.Printf("event publishing failed: %v", err.Error())
+			Logger.Error.Printf("publishing queued event failed on eventbus start: %v", err.Error())
+			if p, ok := err.(*PublishError); ok { //nolint:errorlint // casting required
+				pubErr.addPublishError(p)
+			} else {
+				Logger.Error.Printf("unrecoverable error occurred while activating eventbus %v", err)
+				return err
+			}
 		}
+	}
+	if pubErr.hasErrors() {
+		return pubErr
 	}
 	return nil
 }
 
-func (bus *eventBus) Stop() error {
-	return nil
-}
-
-// eventHandler contains the reference to one subscribed member
-type eventHandler struct {
+// busListener contains the reference to one subscribed member
+type busListener struct {
 	handler       reflect.Value
 	qualifiedName string
+	eventTypeName string
+}
+
+// newBusListener will validate the handler and return the name of the event type, which is provided
+// as an argument to the handler
+func newBusListener(handler Handler) (*busListener, error) {
+	if handler == nil {
+		return nil, ErrHandlerMustNotBeNil
+	}
+	if reflect.TypeOf(handler).Kind() != reflect.Func {
+		return nil, fmt.Errorf("handler is not a function - detail: %s is not of type reflect.Func", reflect.TypeOf(handler).Kind())
+	}
+	// validate argument
+	argValue := reflect.ValueOf(handler)
+	if argValue.Type().NumIn() != 1 {
+		return nil, fmt.Errorf("handler function has unsupported argument, found %d but requires 1" + fmt.Sprintf("%v", argValue.Type().NumIn()))
+	}
+	// validate return value type
+	switch argValue.Type().NumOut() {
+	case 0:
+	case 1:
+		retType := argValue.Type().Out(0)
+		if _, ok := reflect.New(retType).Interface().(*error); !ok {
+			return nil, fmt.Errorf("handler function return type is not an error")
+		}
+	default:
+		return nil, fmt.Errorf("handler function has more than one return value, found %d but requires 1" + fmt.Sprintf("%v", argValue.Type().NumOut()))
+	}
+	path := argValue.Type().In(0).PkgPath()
+	name := argValue.Type().In(0).Name()
+	if len(path) == 0 && len(name) == 0 {
+		return nil, ErrUnknownEventType
+	}
+	eventTypeName := path + "/" + name
+
+	return &busListener{
+		handler:       argValue,
+		qualifiedName: QualifiedName(handler),
+		eventTypeName: eventTypeName,
+	}, nil
 }
 
 // newEventbus returns new an eventBus.
 func newEventbus() *eventBus {
 	return &eventBus{
-		handlers: make(map[string][]*eventHandler),
+		handlers: make(map[string][]*busListener),
 		lock:     sync.RWMutex{},
 		queue:    nil,
 	}
@@ -95,44 +159,25 @@ func newEventbus() *eventBus {
 
 // Subscribe subscribes to a message type.
 // Returns error if `fn` is not a function.
-func (bus *eventBus) Subscribe(handler any) error {
-	if handler == nil {
-		return fmt.Errorf("handler must not be nil")
-	}
-	if reflect.TypeOf(handler).Kind() != reflect.Func {
-		return fmt.Errorf("%s is not of type reflect.Func", reflect.TypeOf(handler).Kind())
-	}
-	p := reflect.ValueOf(handler)
-	if p.Type().NumIn() != 1 {
-		return errors.New("unsubscribe error while because number of arguments expected 1, but found " + fmt.Sprintf("%v", p.Type().NumIn()))
-	}
-	eventType, err := getEventType(p)
+func (bus *eventBus) Subscribe(handler Handler) error {
+	eventHandler, err := newBusListener(handler)
 	if err != nil {
-		return fmt.Errorf("%s seems not to be an regular message", eventType)
+		errRet := fmt.Errorf("%s seems not to be a regular handler function: %w", QualifiedName(handler), err)
+		Logger.Error.Printf(errRet.Error())
+		return errRet
 	}
 	defer bus.lock.Unlock()
 	bus.lock.Lock()
-	bus.handlers[eventType] = append(bus.handlers[eventType], &eventHandler{
-		handler:       reflect.ValueOf(handler),
-		qualifiedName: QualifiedName(handler),
-	})
+	bus.handlers[eventHandler.eventTypeName] = append(bus.handlers[eventHandler.eventTypeName], eventHandler)
+	Logger.Debug.Printf("handler %s subscribed\n", eventHandler.qualifiedName)
 	return nil
 }
 
-func getEventType(p reflect.Value) (string, error) {
-	path := p.Type().In(0).PkgPath()
-	name := p.Type().In(0).Name()
-	if len(path) == 0 && len(name) == 0 {
-		return "", errors.New("couldn't determiner the message type")
-	}
-	return path + "/" + name, nil
-}
-
-// HasMessageHandler returns true if exists any subscribed message handler.
-func (bus *eventBus) HasMessageHandler(message any) bool {
+// HasHandler returns true if exists any subscribed message handler.
+func (bus *eventBus) HasHandler(handler Handler) bool {
 	bus.lock.Lock()
 	defer bus.lock.Unlock()
-	eventType := QualifiedName(message)
+	eventType := QualifiedName(handler)
 	_, ok := bus.handlers[eventType]
 	if ok {
 		return len(bus.handlers[eventType]) > 0
@@ -142,35 +187,74 @@ func (bus *eventBus) HasMessageHandler(message any) bool {
 
 // Unsubscribe removes handler defined for a message type.
 // Returns error if there are no handlers subscribed to the message type.
-func (bus *eventBus) Unsubscribe(handler any) error {
-	if handler == nil {
-		return fmt.Errorf("handler must not be nil")
-	}
-	// eventType := QualifiedName(message)
-	p := reflect.ValueOf(handler)
-	if reflect.TypeOf(handler).Kind() != reflect.Func {
-		return fmt.Errorf("%s is not of type reflect.Func", reflect.TypeOf(handler).Kind())
-	}
-	if p.Type().NumIn() != 1 {
-		return errors.New("unsubscribe error because number of arguments expected 1, but found " + fmt.Sprintf("%v", p.Type().NumIn()))
-	}
-	eventType, err := getEventType(p)
+func (bus *eventBus) Unsubscribe(handler Handler) error {
+	eventHandler, err := newBusListener(handler)
 	if err != nil {
-		return fmt.Errorf("%s seems not to be an regular message", eventType)
+		errRet := fmt.Errorf("%s seems not to be an regular handler function: %w", QualifiedName(handler), err)
+		Logger.Error.Printf(errRet.Error())
+		return errRet
 	}
 	bus.lock.Lock()
 	defer bus.lock.Unlock()
-	if _, ok := bus.handlers[eventType]; ok && len(bus.handlers[eventType]) > 0 {
-		if ok := bus.removeHandler(eventType, bus.findHandler(eventType, handler)); !ok {
-			return errors.New("handler not found to remove")
+	if _, ok := bus.handlers[eventHandler.eventTypeName]; ok && len(bus.handlers[eventHandler.eventTypeName]) > 0 {
+		if ok := bus.removeHandler(eventHandler.eventTypeName, bus.findHandler(eventHandler.eventTypeName, handler)); !ok {
+			return ErrHandlerNotFound
 		}
+		Logger.Debug.Printf("handler %s unsubscribed \n", eventHandler.qualifiedName)
 		return nil
 	}
-	return fmt.Errorf("eventType %s doesn't exist", eventType)
+	return fmt.Errorf("eventType %s doesn't exist", QualifiedName(handler))
 }
 
+// PublishError will be provided by the
+type PublishError struct {
+	failedListeners map[Event]map[*busListener]error
+}
+
+func newPublicError() *PublishError {
+	return &PublishError{
+		failedListeners: make(map[Event]map[*busListener]error),
+	}
+}
+
+func (err *PublishError) hasErrors() bool {
+	return len(err.failedListeners) > 0
+}
+
+func (err *PublishError) addPublishError(pubErr *PublishError) {
+	for event, m := range pubErr.failedListeners {
+		for key, pErr := range m {
+			err.addError(event, key, pErr)
+		}
+	}
+}
+
+func (err *PublishError) addError(e Event, bl *busListener, pubErr error) {
+	m := err.failedListeners[e]
+	if m == nil {
+		m = make(map[*busListener]error)
+		err.failedListeners[e] = m
+	}
+	m[bl] = pubErr
+}
+
+// Error is used to confirm to the error interface
+func (err *PublishError) Error() string {
+	str := "publish failed for "
+	for event, m := range err.failedListeners {
+		str += fmt.Sprintf("event: %s", QualifiedName(event))
+		for key, pErr := range m {
+			str = fmt.Sprintf("%s [%s: %s]", str, key.qualifiedName, pErr.Error())
+		}
+	}
+
+	return str
+}
+
+var _ error = (*PublishError)(nil) // force error to confirm to error interface
+
 // Publish executes handler defined for a message type. Any additional argument will be transferred to the handler.
-func (bus *eventBus) Publish(event any) (err error) {
+func (bus *eventBus) Publish(event Event) (err error) {
 	// if the bus is processing already, the upcoming messages will be queued
 	var eventType string
 	defer func() {
@@ -185,11 +269,11 @@ func (bus *eventBus) Publish(event any) (err error) {
 			}
 		}
 		if err != nil {
-			Logger.Error.Printf("publishing event %s failed: Error: %s\n", eventType, err.Error())
+			Logger.Error.Printf("publishing event %s failed: %s\n", eventType, err.Error())
 		}
 	}()
 	if event == nil {
-		return errors.New("event must not be nil")
+		return ErrEventMustNotBeNil
 	}
 	eventType = QualifiedName(event)
 	if !bus.isStarted {
@@ -202,34 +286,54 @@ func (bus *eventBus) Publish(event any) (err error) {
 		// Handlers slice may be changed by removeHandler and Unsubscribe during iteration,
 		// so make a copy and iterate the copied slice.
 		bus.lock.RLock()
-		copyHandlers := make([]*eventHandler, len(handlers))
+		copyHandlers := make([]*busListener, len(handlers))
 		copy(copyHandlers, handlers)
 		bus.lock.RUnlock()
-		for _, handler := range copyHandlers {
-			passedArguments := bus.prepare(event)
-			handler.handler.Call(passedArguments)
+		pErr := bus.publish(event, copyHandlers)
+		if pErr != nil {
+			return pErr
 		}
 	}
 	return err
 }
 
-func (bus *eventBus) removeHandler(eventType string, index int) bool {
-	l := len(bus.handlers[eventType])
+// publish the event to all provided bus listeners
+func (bus *eventBus) publish(event Event, listeners []*busListener) *PublishError {
+	errPublish := newPublicError()
+	for _, listener := range listeners {
+		passedArguments := bus.prepare(event)
+		ret := listener.handler.Call(passedArguments)
+		// a handler may return an error... validation will verify
+		if len(ret) == 1 {
+			err, ok := ret[0].Interface().(error)
+			if ok && err != nil {
+				errPublish.addError(event, listener, err)
+			}
+		}
+	}
+	if len(errPublish.failedListeners) > 0 {
+		return errPublish
+	}
+	return nil
+}
+
+func (bus *eventBus) removeHandler(eventTypeName string, index int) bool {
+	l := len(bus.handlers[eventTypeName])
 
 	if !(0 <= index && index < l) {
 		return false
 	}
 
-	copy(bus.handlers[eventType][index:], bus.handlers[eventType][index+1:])
-	bus.handlers[eventType][l-1] = nil // or the zero value of T
-	bus.handlers[eventType] = bus.handlers[eventType][:l-1]
+	copy(bus.handlers[eventTypeName][index:], bus.handlers[eventTypeName][index+1:])
+	bus.handlers[eventTypeName][l-1] = nil // or the zero value of T
+	bus.handlers[eventTypeName] = bus.handlers[eventTypeName][:l-1]
 	return true
 }
 
-func (bus *eventBus) findHandler(eventType string, removingandler any) int {
-	if _, ok := bus.handlers[eventType]; ok {
-		for index, handler := range bus.handlers[eventType] {
-			if handler.qualifiedName == QualifiedName(removingandler) {
+func (bus *eventBus) findHandler(eventTypeName string, handler any) int {
+	if _, ok := bus.handlers[eventTypeName]; ok {
+		for index, h := range bus.handlers[eventTypeName] {
+			if h.qualifiedName == QualifiedName(handler) {
 				return index
 			}
 		}
@@ -249,9 +353,12 @@ type testableEventBus struct {
 }
 
 // NewTestableEventBus can be used for unit testing.
-func NewTestableEventBus() EventBus {
+func NewTestableEventBus() *testableEventBus {
 	return &testableEventBus{eventBus{
-		handlers: make(map[string][]*eventHandler),
+		Runtime: &runtime{
+			modes: []Flag{UnitTestFlag},
+		},
+		handlers: make(map[string][]*busListener),
 		lock:     sync.RWMutex{},
 		queue:    nil,
 	}}

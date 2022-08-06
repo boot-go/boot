@@ -10,27 +10,17 @@
 
 **boot-go** accentuate [component-based development](https://en.wikipedia.org/wiki/Component-based_software_engineering) (CBD).
 
-This is an opinionated view of writing modular and cohesive [Go](https://github.com/golang/go) code. It emphasizes the separation of concerns by loosely coupled components, which communicate with each other via interfaces and events. The goal is to support writing maintainable code on the long run, while taking the little more complexity compared to the well-defined standard library into account.
+This is an opinionated view of writing modular and cohesive [Go](https://github.com/golang/go) code. It emphasizes the separation of concerns by loosely coupled components, which communicate with each other via methods and events. The goal is to support writing maintainable code on the long run by leveraging the well-defined standard library.
 
-**boot-go** provided features are:
-- code decoupling
-- configuration handling
+**boot-go** provided key features are:
 - dependency injection
+- configuration handling
+- code decoupling
 
-### boot stack
-**boot-go** was primarily designed to build opinionated frameworks and bundle them as a stack. So every developer or company can choose to use the [default stack](https://github.com/boot-go/stack), a shared stack or rather create a new one. Stacks should be build with one specific purpose in mind for building a **microservice**, **ui application**, **web application**, **data analytics application** and so on. As an example, a **web application boot stack** could contain a http server component, a sql database component, a logging and a web application framework.
+### Development characteristic
+**boot-go** supports two different development characteristic. For simplicity reason, use the functions ```Register```, ```RegisterName```, ```Override```, ```OverrideName```, ```Shutdown``` and ```Go``` to register components and start **boot-go**. This is the recommended way, despite the fact that one global session is used.
 
-### component
-Everything in **boot-go** starts with a component. They are key fundamental in the development and can be considered as an elementary build block. The essential concept is to get all the necessary components functioning with as less effort as possible. Therefore, components must always provide a default configuration, which uses the most common settings. As an example, a **http server** should always start using port **8080**, unless the developer specifies it. Or a postgres component should try to connect to **localhost:5432** when there is no database url provided.
-
-A component should be _fail tolerant_, _recoverable_, _agnostic_ and _decent_.
-
-Facet | Meaning | Example
--------- | -------- | --------
-_fail tolerant_ | Don't stop processing on errors.   | A http request can still be processed, even when the metrics server is not available anymore.
-_recoverable_ | Try to recover from errors. | A database component should try to reconnect after losing the connection.
-_agnostic_ | Behave the same in any environment. | A key-value store component should work on a local development machine the same way as in a containerized environment.
-_decent_ | Don't overload the developer with complexity. | Keep the interface and events as simple as possible. It's better to build three smaller but specific components then one general with increased complexity. Less is often more.
+But **boot-go** supports also creating new sessions, so that no global variable is required. In this case, the methods ```Register```, ```RegisterName```, ```Override```, ```OverrideName```, ```Shutdown``` and ```Go``` are provided to register components and start **boot-go**.
 
 ### Simple Example
 The **hello** component is a very basic example. It contains no fields or provides any interface to interact with other components. The component will just print the _'Hello World'_ message to the console.
@@ -53,13 +43,42 @@ func init() {
 type hello struct{}
 
 // Init is the initializer of the component.
-func (c *hello) Init() {
+func (c *hello) Init() error {
 	log.Printf("boot-go says > 'Hello World'\n")
+	return nil
 }
 
 // Start the example and exit after the component was completed.
 func main() {
 	boot.Go()
+}
+```
+
+The same example using a new session, which don't need any global variables.
+```Go
+package main
+
+import (
+	"github.com/boot-go/boot"
+	"log"
+)
+
+// hello is the simplest component.
+type hello struct{}
+
+// Init is the initializer of the component.
+func (c *hello) Init() error {
+	log.Printf("boot-go says > 'Hello World'\n")
+	return nil
+}
+
+// Start the example and exit after the component was completed.
+func main() {
+	s := boot.NewSession()
+	s.Register(func() boot.Component {
+		return &hello{}
+	})
+	s.Go()
 }
 ```
 
@@ -83,7 +102,7 @@ func init() {
 }
 
 // hello is a very simple http server example.
-// It requires the Eventbus and the httpcmp.Server component. Both components
+// It requires the Eventbus and the chi.Server component. Both components
 // are injected by the boot framework automatically
 type hello struct {
 	Eventbus boot.EventBus  `boot:"wire"`
@@ -91,13 +110,14 @@ type hello struct {
 }
 
 // Init is the constructor of the component. The handler registration takes place here.
-func (h *hello) Init() {
+func (h *hello) Init() error {
 	// Subscribe to the registration event
 	h.Eventbus.Subscribe(func(event httpcmp.InitializedEvent) {
 		h.Server.HandleFunc("/", func(writer http.ResponseWriter, request *http.Request) {
 			io.WriteString(writer, "boot-go says: 'Hello World'\n")
 		})
 	})
+	return nil
 }
 
 // Start the example and test with 'curl localhost:8080'
@@ -105,6 +125,19 @@ func main() {
 	boot.Go()
 }
 ```
+
+### Component
+Everything in **boot-go** starts with a component. They are key fundamental in the development and can be considered as an elementary build block. The essential concept is to get all the necessary components functioning with as less effort as possible. Therefore, components must always provide a default configuration, which uses the most common settings. As an example, a **http server** should always start using port **8080**, unless the developer specifies it. Or a postgres component should try to connect to **localhost:5432** when there is no database url provided.
+
+A component should be _fail tolerant_, _recoverable_, _agnostic_ and _decent_.
+
+Facet | Meaning | Example
+-------- | -------- | --------
+_fail tolerant_ | Don't stop processing on errors.   | A http request can still be processed, even when the metrics server is not available anymore.
+_recoverable_ | Try to recover from errors. | A database component should try to reconnect after losing the connection.
+_agnostic_ | Behave the same in any environment. | A key-value store component should work on a local development machine the same way as in a containerized environment.
+_decent_ | Don't overload the developer with complexity. | Keep the interface and events as simple as possible. It's better to build three smaller but specific components then one general with increased complexity. Less is often more.
+
 
 ### Configuration
 Configuration values can also be automatically injected with arguments or environment variables at start time. The value from ```USER``` will be used in this example. If the argument ```--USER madpax``` is not set and the environment variable is not defined, it is possible to specify the reaction whether the execution should stop with a panic or continue with a warning.
@@ -129,8 +162,9 @@ func init() {
 }
 
 // Init is the initializer of the component.
-func (c *hello) Init() {
+func (c *hello) Init() error {
 	log.Printf("boot-go says > 'Hello %s'\n", c.Out)
+	return nil
 }
 
 // Start the example and exit after the component was completed
@@ -139,6 +173,11 @@ func main() {
 }
 
 ```
+
+
+### boot stack
+**boot-go** was primarily designed to build opinionated frameworks and bundle them as a stack. So every developer or company can choose to use the [default stack](https://github.com/boot-go/stack), a shared stack or rather create a new one. Stacks should be build with one specific purpose in mind for building a **microservice**, **ui application**, **web application**, **data analytics application** and so on. As an example, a **web application boot stack** could contain a http server component, a sql database component, a logging and a web application framework.
+
 
 ### Examples
 More examples can be found in the [tutorial repository](https://github.com/boot-go/tutorial).

@@ -30,19 +30,19 @@ import (
 
 func TestResolveDependency(t *testing.T) {
 	type args struct {
-		resolveEntry *entry
+		resolveEntry *componentManager
 		registry     *registry
 	}
 	tests := []struct {
 		name        string
 		args        args
-		wantEntries []*entry
+		wantEntries []*componentManager
 		wantErr     bool
 	}{
 		{name: "component already created", args: struct {
-			resolveEntry *entry
+			resolveEntry *componentManager
 			registry     *registry
-		}{resolveEntry: &entry{
+		}{resolveEntry: &componentManager{
 			component: nil,
 			state:     Started,
 			name:      DefaultName,
@@ -78,6 +78,18 @@ func TestParseStructTag(t *testing.T) {
 			want:  nil,
 			want1: false,
 		},
+		{
+			name:  "wrong format of sub-tokens",
+			args:  args{tagValue: ",':"},
+			want:  nil,
+			want1: false,
+		},
+		{
+			name:  "wrong nested format of sub-tokens",
+			args:  args{tagValue: ",':'':"},
+			want:  nil,
+			want1: false,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -103,7 +115,8 @@ type testerComponentTwo struct {
 func (t *testerComponentTwo) Init() error { return nil }
 
 func TestTesterWithMultipleTestComponents(t *testing.T) {
-	err := Test(&testerComponentOne{}, &testerComponentTwo{})
+	ts := newTestSession(&testerComponentOne{}, &testerComponentTwo{})
+	err := ts.Go()
 	if err != nil {
 		t.Errorf("Test failed: %s", err.Error())
 	}

@@ -7,7 +7,7 @@ linters:
     # Vet examines Go source code and reports suspicious constructs, such as Printf calls whose arguments do not align with the format string
     - govet
     # find unused code
-    - deadcode
+#    - deadcode => The owner seems to have abandoned the linter.  Replaced by unused.
     # simplify source code:
     - gosimple
     # govet "on steroids"
@@ -41,7 +41,7 @@ linters:
     # Checks assignments with too many blank identifiers
     - dogsled
     # Tool for code clone detection
-#    - dupl
+    - dupl
     # check for two durations multiplied together
     - durationcheck
     # Checks types passed to the json encoding functions. Reports unsupported types and optionally reports occasions, where the check for the returned error can be omitted.
@@ -67,13 +67,13 @@ linters:
     # Manage the use of 'replace', 'retract', and 'excludes' directives in go.mod.
     - gomoddirectives
     # Checks that printf-like functions are named with f at the end
-#    - goprintffuncname => TODO: fix sometime
+    - goprintffuncname
     # Inspects source code for security problems
-#    - gosec => TODO: fix me
+    - gosec
     # Enforces consistent import aliases
     - importas
     # Accept Interfaces, Return Concrete Types
-#    - ireturn => TODO: Try to fix them
+    - ireturn
     # Finds slice declarations with non-zero initial length
     - makezero
     # Finds commonly misspelled English words in comments
@@ -87,19 +87,19 @@ linters:
     # Reports ill-formed or insufficient nolint directives
     - nolintlint
     # Checks for misuse of Sprintf to construct a host with port in a URL.
-#    - nosprintfhostport => TODO: Fix me
+    - nosprintfhostport
     # find code that shadows one of Go's predeclared identifiers
     - predeclared
     # Checks the struct tags.
-#    - tagliatelle => TODO: fix me
+    - tagliatelle
     # tenv is analyzer that detects using os.Setenv instead of t.Setenv since Go1.17
     - tenv
     # Remove unnecessary type conversions
     - unconvert
     # checks that the length of a variable's name matches its scope
-#    - varnamelen => TODO: Fix me
+    - varnamelen
     # Tool for detection of leading and trailing whitespace
-#    - whitespace => TODO: Fix me
+    - whitespace
   disable:
     # Finds unused struct fields
     - structcheck
@@ -131,11 +131,11 @@ linters-settings:
     # Checks the number of lines in a function.
     # If lower than 0, disable the check.
     # Default: 60
-    lines: 80
+    lines: 120
     # Checks the number of statements in a function.
     # If lower than 0, disable the check.
     # Default: 40
-    statements: 50
+    statements: 60
   goheader:
     # The template use for checking.
     # Default: ""
