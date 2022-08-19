@@ -10,12 +10,12 @@
 
 **boot-go** accentuate [component-based development](https://en.wikipedia.org/wiki/Component-based_software_engineering) (CBD).
 
-This is an opinionated view of writing modular and cohesive [Go](https://github.com/golang/go) code. It emphasizes the separation of concerns by loosely coupled components, which communicate with each other via interfaces and events. The goal is to support writing maintainable code on the long run, while taking the little more complexity compared to the well-defined standard library into account.
+This is an opinionated view of writing modular and cohesive [Go](https://github.com/golang/go) code. It emphasizes the separation of concerns by loosely coupled components, which communicate with each other via methods and events. The goal is to support writing maintainable code on the long run, while taking the little more complexity compared to the well-defined standard library into account.
 
 **boot-go** provided features are:
-- code decoupling
-- configuration handling
 - dependency injection
+- configuration handling
+- code decoupling
 
 ### boot stack
 **boot-go** was primarily designed to build opinionated frameworks and bundle them as a stack. So every developer or company can choose to use the [default stack](https://github.com/boot-go/stack), a shared stack or rather create a new one. Stacks should be build with one specific purpose in mind for building a **microservice**, **ui application**, **web application**, **data analytics application** and so on. As an example, a **web application boot stack** could contain a http server component, a sql database component, a logging and a web application framework.
@@ -31,6 +31,11 @@ _fail tolerant_ | Don't stop processing on errors.   | A http request can still 
 _recoverable_ | Try to recover from errors. | A database component should try to reconnect after losing the connection.
 _agnostic_ | Behave the same in any environment. | A key-value store component should work on a local development machine the same way as in a containerized environment.
 _decent_ | Don't overload the developer with complexity. | Keep the interface and events as simple as possible. It's better to build three smaller but specific components then one general with increased complexity. Less is often more.
+
+### Development characteristic
+**boot-go** supports two different development characteristic. For simplicity reason, use the functions ```Register```, ```RegisterName```, ```Override```, ```OverrideName```, ```Shutdown``` and ```Go``` to register components and start **boot-go**. This is the recommended way, despite the fact that one global session is used.
+
+But **boot-go** supports also creating new sessions, so that no global variable is required. In this case, the methods ```Register```, ```RegisterName```, ```Override```, ```OverrideName```, ```Shutdown``` and ```Go``` are provided to register components and start **boot-go**.
 
 ### Simple Example
 The **hello** component is a very basic example. It contains no fields or provides any interface to interact with other components. The component will just print the _'Hello World'_ message to the console.
@@ -53,8 +58,9 @@ func init() {
 type hello struct{}
 
 // Init is the initializer of the component.
-func (c *hello) Init() {
+func (c *hello) Init() error {
 	log.Printf("boot-go says > 'Hello World'\n")
+	return nil
 }
 
 // Start the example and exit after the component was completed.
@@ -91,13 +97,14 @@ type hello struct {
 }
 
 // Init is the constructor of the component. The handler registration takes place here.
-func (h *hello) Init() {
+func (h *hello) Init() error {
 	// Subscribe to the registration event
 	h.Eventbus.Subscribe(func(event httpcmp.InitializedEvent) {
 		h.Server.HandleFunc("/", func(writer http.ResponseWriter, request *http.Request) {
 			io.WriteString(writer, "boot-go says: 'Hello World'\n")
 		})
 	})
+	return nil
 }
 
 // Start the example and test with 'curl localhost:8080'
@@ -129,8 +136,9 @@ func init() {
 }
 
 // Init is the initializer of the component.
-func (c *hello) Init() {
+func (c *hello) Init() error {
 	log.Printf("boot-go says > 'Hello %s'\n", c.Out)
+	return nil
 }
 
 // Start the example and exit after the component was completed
