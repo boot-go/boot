@@ -30,10 +30,10 @@ import (
 
 func TestSessionNextPhaseAfter(t *testing.T) {
 	type fields struct {
-		phase Phase
+		phase phase
 	}
 	type args struct {
-		expected Phase
+		expected phase
 	}
 	tests := []struct {
 		name    string
@@ -42,55 +42,55 @@ func TestSessionNextPhaseAfter(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name: "next phase after Initializing",
+			name: "next phase after initializing",
 			fields: fields{
-				phase: Initializing,
+				phase: initializing,
 			},
-			args:    args{Initializing},
+			args:    args{initializing},
 			wantErr: false,
 		},
 		{
-			name: "next phase after Booting",
+			name: "next phase after booting",
 			fields: fields{
-				phase: Booting,
+				phase: booting,
 			},
-			args:    args{Booting},
+			args:    args{booting},
 			wantErr: false,
 		},
 		{
-			name: "next phase after Running",
+			name: "next phase after running",
 			fields: fields{
-				phase: Running,
+				phase: running,
 			},
-			args:    args{Running},
+			args:    args{running},
 			wantErr: false,
 		},
 		{
-			name: "next phase after Stopping",
+			name: "next phase after stopping",
 			fields: fields{
-				phase: Stopping,
+				phase: stopping,
 			},
-			args:    args{Stopping},
+			args:    args{stopping},
 			wantErr: false,
 		},
 		{
-			name: "next phase after Stopping",
+			name: "next phase after stopping",
 			fields: fields{
-				phase: Exiting,
+				phase: exiting,
 			},
-			args:    args{Exiting},
+			args:    args{exiting},
 			wantErr: false,
 		},
 		{
-			name: "fail next phase after Stopping",
+			name: "fail next phase after stopping",
 			fields: fields{
-				phase: Exiting,
+				phase: exiting,
 			},
-			args:    args{Initializing},
+			args:    args{initializing},
 			wantErr: true,
 		},
 		{
-			name: "fail with unknown next phase after Exiting",
+			name: "fail with unknown next phase after exiting",
 			fields: fields{
 				phase: 100,
 			},
@@ -111,7 +111,7 @@ func TestSessionNextPhaseAfter(t *testing.T) {
 
 func TestSessionRegister(t *testing.T) { //nolint:dupl // duplication accepted
 	type fields struct {
-		phase Phase
+		phase phase
 	}
 	type args struct {
 		name   string
@@ -126,7 +126,7 @@ func TestSessionRegister(t *testing.T) { //nolint:dupl // duplication accepted
 		{
 			name: "successful",
 			fields: fields{
-				phase: Initializing,
+				phase: initializing,
 			},
 			args: args{
 				name: DefaultName,
@@ -139,7 +139,7 @@ func TestSessionRegister(t *testing.T) { //nolint:dupl // duplication accepted
 		{
 			name: "error when no name or func ",
 			fields: fields{
-				phase: Initializing,
+				phase: initializing,
 			},
 			args: args{
 				name:   "",
@@ -150,7 +150,7 @@ func TestSessionRegister(t *testing.T) { //nolint:dupl // duplication accepted
 		{
 			name: "error when no name or func ",
 			fields: fields{
-				phase: Initializing,
+				phase: initializing,
 			},
 			args: args{
 				name:   "",
@@ -159,9 +159,9 @@ func TestSessionRegister(t *testing.T) { //nolint:dupl // duplication accepted
 			wantErr: errSessionRegisterNameOrFunction,
 		},
 		{
-			name: "error when phase is not Initializing",
+			name: "error when phase is not initializing",
 			fields: fields{
-				phase: Running,
+				phase: running,
 			},
 			args: args{
 				name: DefaultName,
@@ -185,7 +185,7 @@ func TestSessionRegister(t *testing.T) { //nolint:dupl // duplication accepted
 
 func TestSessionRegisterDefault(t *testing.T) {
 	type fields struct {
-		phase Phase
+		phase phase
 	}
 	type args struct {
 		create func() Component
@@ -199,7 +199,7 @@ func TestSessionRegisterDefault(t *testing.T) {
 		{
 			name: "successful",
 			fields: fields{
-				phase: Initializing,
+				phase: initializing,
 			},
 			args: args{
 				create: func() Component {
@@ -222,7 +222,7 @@ func TestSessionRegisterDefault(t *testing.T) {
 
 func TestSessionOverride(t *testing.T) { //nolint:dupl // duplication accepted
 	type fields struct {
-		phase Phase
+		phase phase
 	}
 	type args struct {
 		name   string
@@ -237,7 +237,7 @@ func TestSessionOverride(t *testing.T) { //nolint:dupl // duplication accepted
 		{
 			name: "successful",
 			fields: fields{
-				phase: Initializing,
+				phase: initializing,
 			},
 			args: args{
 				name: DefaultName,
@@ -250,7 +250,7 @@ func TestSessionOverride(t *testing.T) { //nolint:dupl // duplication accepted
 		{
 			name: "error when no name or func ",
 			fields: fields{
-				phase: Initializing,
+				phase: initializing,
 			},
 			args: args{
 				name:   "",
@@ -261,7 +261,7 @@ func TestSessionOverride(t *testing.T) { //nolint:dupl // duplication accepted
 		{
 			name: "error when no name or func ",
 			fields: fields{
-				phase: Initializing,
+				phase: initializing,
 			},
 			args: args{
 				name:   "",
@@ -270,9 +270,9 @@ func TestSessionOverride(t *testing.T) { //nolint:dupl // duplication accepted
 			wantErr: errSessionRegisterNameOrFunction,
 		},
 		{
-			name: "error when phase is not Initializing",
+			name: "error when phase is not initializing",
 			fields: fields{
-				phase: Running,
+				phase: running,
 			},
 			args: args{
 				name: DefaultName,
@@ -296,7 +296,7 @@ func TestSessionOverride(t *testing.T) { //nolint:dupl // duplication accepted
 
 func TestSessionOverrideDefault(t *testing.T) {
 	type fields struct {
-		phase Phase
+		phase phase
 	}
 	type args struct {
 		create func() Component
@@ -310,7 +310,7 @@ func TestSessionOverrideDefault(t *testing.T) {
 		{
 			name: "successful",
 			fields: fields{
-				phase: Initializing,
+				phase: initializing,
 			},
 			args: args{
 				create: func() Component {
@@ -392,9 +392,9 @@ func TestSessionRunEventbusActivationFail(t *testing.T) {
 
 type testPhase struct {
 	s     *testSession
-	init  Phase
-	start Phase
-	stop  Phase
+	init  phase
+	start phase
+	stop  phase
 }
 
 func (t *testPhase) Init() error {
@@ -415,27 +415,27 @@ func (t *testPhase) Stop() error {
 func TestSessionRun(t *testing.T) {
 	tests := []struct {
 		name         string
-		initPhase    Phase
-		bootPhase    Phase
-		runningPhase Phase
+		initPhase    phase
+		bootPhase    phase
+		runningPhase phase
 		wantErr      string
 	}{
 		{
 			name:      "fail boot",
-			initPhase: Exiting,
+			initPhase: exiting,
 			wantErr:   "current boot phase exiting doesn't match expected boot phase initialization",
 		},
 		{
 			name:      "fail init",
-			initPhase: Initializing,
-			bootPhase: Exiting,
+			initPhase: initializing,
+			bootPhase: exiting,
 			wantErr:   "current boot phase exiting doesn't match expected boot phase booting",
 		},
 		{
 			name:         "fail start",
-			initPhase:    Initializing,
-			bootPhase:    Booting,
-			runningPhase: Exiting,
+			initPhase:    initializing,
+			bootPhase:    booting,
+			runningPhase: exiting,
 			wantErr:      "current boot phase exiting doesn't match expected boot phase stopping",
 		},
 	}

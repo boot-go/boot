@@ -39,20 +39,20 @@ type factory struct {
 	override bool
 }
 
-// Phase describes the status of the boot-go componentManager
-type Phase uint8
+// phase describes the status of the boot-go componentManager
+type phase uint8
 
-func (p Phase) String() string {
+func (p phase) String() string {
 	switch p {
-	case Initializing:
+	case initializing:
 		return "initialization"
-	case Booting:
+	case booting:
 		return "booting"
-	case Running:
+	case running:
 		return "running"
-	case Stopping:
+	case stopping:
 		return "stopping"
-	case Exiting:
+	case exiting:
 		return "exiting"
 	}
 	return "unknown"
@@ -72,23 +72,23 @@ var (
 )
 
 const (
-	// Initializing is set directly after the application started.
+	// initializing is set directly after the application started.
 	// In this phase it is safe to subscribe to events.
-	Initializing Phase = iota
-	// Booting is set when starting the boot framework.
-	Booting
-	// Running is set when all components were initialized and started
-	Running
-	// Stopping is set when all components are requested to stop their service.
-	Stopping
-	// Exiting is set when all components were stopped.
-	Exiting
+	initializing phase = iota
+	// booting is set when starting the boot framework.
+	booting
+	// running is set when all components were initialized and started
+	running
+	// stopping is set when all components are requested to stop their service.
+	stopping
+	// exiting is set when all components were stopped.
+	exiting
 )
 
 type Session struct {
 	factories       []factory
 	changeMutex     sync.Mutex
-	phase           Phase
+	phase           phase
 	shutdownChannel chan os.Signal
 	runtime         *runtime
 	eventbus        *eventBus
@@ -99,7 +99,7 @@ func NewSession(mode ...Flag) *Session {
 	s := &Session{
 		factories:       []factory{},
 		changeMutex:     sync.Mutex{},
-		phase:           Initializing,
+		phase:           initializing,
 		shutdownChannel: make(chan os.Signal, 1),
 	}
 	// register default components... errors not possible, so they are ignored
@@ -116,20 +116,20 @@ func NewSession(mode ...Flag) *Session {
 	return s
 }
 
-func (s *Session) nextPhaseAfter(expected Phase) error {
+func (s *Session) nextPhaseAfter(expected phase) error {
 	defer s.changeMutex.Unlock()
 	s.changeMutex.Lock()
-	newPhase := Initializing
+	newPhase := initializing
 	switch s.phase {
-	case Initializing:
-		newPhase = Booting
-	case Booting:
-		newPhase = Running
-	case Running:
-		newPhase = Stopping
-	case Stopping:
-		newPhase = Exiting
-	case Exiting:
+	case initializing:
+		newPhase = booting
+	case booting:
+		newPhase = running
+	case running:
+		newPhase = stopping
+	case stopping:
+		newPhase = exiting
+	case exiting:
 		// there is no new phase, because it would be exited
 	}
 	if expected != s.phase {
@@ -146,7 +146,7 @@ func (s *Session) register(name string, create func() Component, override bool) 
 	}
 	defer s.changeMutex.Unlock()
 	s.changeMutex.Lock()
-	if s.phase != Initializing {
+	if s.phase != initializing {
 		return errSessionRegisterComponentOutsideInitialize
 	}
 	s.factories = append(s.factories, factory{
@@ -174,7 +174,7 @@ func (s *Session) OverrideName(name string, create func() Component) error {
 }
 
 func (s *Session) Go() error { //nolint:varnamelen // s is fine for method
-	if err := s.nextPhaseAfter(Initializing); err != nil {
+	if err := s.nextPhaseAfter(initializing); err != nil {
 		return err
 	}
 
@@ -187,7 +187,7 @@ func (s *Session) Go() error { //nolint:varnamelen // s is fine for method
 		return err
 	}
 
-	if err := s.nextPhaseAfter(Booting); err != nil {
+	if err := s.nextPhaseAfter(booting); err != nil {
 		return err
 	}
 	instances.startComponents()
@@ -204,13 +204,13 @@ func (s *Session) Go() error { //nolint:varnamelen // s is fine for method
 		Logger.Error.Printf("going down - eventbus activation failed: %v", err)
 	}
 
-	if err := s.nextPhaseAfter(Running); err != nil {
+	if err := s.nextPhaseAfter(running); err != nil {
 		Logger.Error.Printf("component stop error: %v", err)
 	}
 	instances.stopComponents()
 	Logger.Debug.Printf("%d components stopped", instances.count())
 
-	if err := s.nextPhaseAfter(Stopping); err != nil {
+	if err := s.nextPhaseAfter(stopping); err != nil {
 		return err
 	}
 

@@ -461,7 +461,7 @@ func TestOverrideWithPanic(t *testing.T) {
 func TestPhaseString(t *testing.T) {
 	tests := []struct {
 		name string
-		p    Phase
+		p    phase
 		want string
 	}{
 		{name: "none", p: math.MaxUint8, want: "unknown"},
