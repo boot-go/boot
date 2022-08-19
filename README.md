@@ -69,6 +69,34 @@ func main() {
 }
 ```
 
+The same example using a new session, which don't need any global variables.
+```Go
+package main
+
+import (
+	"github.com/boot-go/boot"
+	"log"
+)
+
+// hello is the simplest component.
+type hello struct{}
+
+// Init is the initializer of the component.
+func (c *hello) Init() error {
+	log.Printf("boot-go says > 'Hello World'\n")
+	return nil
+}
+
+// Start the example and exit after the component was completed.
+func main() {
+	s := boot.NewSession()
+	s.Register(func() boot.Component {
+		return &hello{}
+	})
+	s.Go()
+}
+```
+
 ### Component wiring
 This example shows how components get wired automatically with dependency injection. The server component starts at ```:8080``` by default, but the port is configurable by setting the environment variable ```HTTP_SERVER_PORT```. 
 ```go
