@@ -103,7 +103,7 @@ func resolveDependency(regEntry *componentManager, reg *registry) (entries []*co
 	err = initComponent(regEntry)
 	if err != nil {
 		regEntry.state = Failed
-		return
+		return nil, err
 	}
 	regEntry.state = Initialized
 	entries = append(entries, regEntry)

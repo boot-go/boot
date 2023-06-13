@@ -292,7 +292,7 @@ func (bus *eventBus) Publish(event Event) (err error) {
 		bus.queueLock.Lock()
 		defer bus.queueLock.Unlock()
 		bus.queue = append(bus.queue, event)
-		return
+		return nil
 	}
 	Logger.Debug.Printf("publishing event %s\n", eventType)
 	if handlers, ok := bus.handlers[eventType]; ok && 0 < len(handlers) {
