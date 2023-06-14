@@ -343,6 +343,19 @@ func (e *eventbusActivationTest) Init() error {
 	return e.Eventbus.Publish(testEvent{})
 }
 
+type eventbusActivationProcessTest struct {
+	Eventbus               EventBus `boot:"wire"`
+	initSubscribeReturnErr error
+}
+
+func (e *eventbusActivationProcessTest) Init() error { return nil }
+
+func (e *eventbusActivationProcessTest) Start() error {
+	return e.Eventbus.Publish(testEvent{})
+}
+
+func (e *eventbusActivationProcessTest) Stop() error { return nil }
+
 func TestSessionRunEventbusActivationFail(t *testing.T) {
 	type args struct {
 		create func() Component
@@ -357,6 +370,17 @@ func TestSessionRunEventbusActivationFail(t *testing.T) {
 			args: args{
 				create: func() Component {
 					return &eventbusActivationTest{
+						initSubscribeReturnErr: nil,
+					}
+				},
+			},
+			wantErr: nil,
+		},
+		{
+			name: "successful process component",
+			args: args{
+				create: func() Component {
+					return &eventbusActivationProcessTest{
 						initSubscribeReturnErr: nil,
 					}
 				},

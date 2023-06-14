@@ -34,9 +34,10 @@ import (
 type eventBus struct {
 	Runtime   Runtime                   `boot:"wire"`
 	handlers  map[string][]*busListener // contains all handler for a given type
-	lock      sync.RWMutex              // a lock for the handler map
+	lock      sync.RWMutex              // a mutex for the handlers map and the isStarted flag
 	isStarted bool
-	queue     []any // the queue which will receive the events until the init phase is  changed
+	queue     []any        // the queue which will receive the events until the init phase is  changed
+	queueLock sync.RWMutex // a mutex for the queue of events
 }
 
 // Handler is a function which has one argument. This argument is usually a published event. An error
@@ -75,13 +76,20 @@ var (
 
 // Init is described in the Component interface
 func (bus *eventBus) Init() error {
+	bus.lock.Lock()
+	defer bus.lock.Unlock()
 	bus.isStarted = false
 	return nil
 }
 
 func (bus *eventBus) activate() error {
+	bus.lock.Lock()
 	bus.isStarted = true
+	bus.lock.Unlock()
+
 	// republishing queued events
+	bus.queueLock.RLock()
+	defer bus.queueLock.RUnlock()
 	Logger.Debug.Printf("eventbus started with %d queued events\n", len(bus.queue))
 	pubErr := newPublicError()
 	for _, event := range bus.queue {
@@ -276,10 +284,15 @@ func (bus *eventBus) Publish(event Event) (err error) {
 		return ErrEventMustNotBeNil
 	}
 	eventType = QualifiedName(event)
-	if !bus.isStarted {
+	bus.lock.RLock()
+	started := bus.isStarted
+	bus.lock.RUnlock()
+	if !started {
 		Logger.Debug.Printf("queuing event %s\n", eventType)
+		bus.queueLock.Lock()
+		defer bus.queueLock.Unlock()
 		bus.queue = append(bus.queue, event)
-		return
+		return nil
 	}
 	Logger.Debug.Printf("publishing event %s\n", eventType)
 	if handlers, ok := bus.handlers[eventType]; ok && 0 < len(handlers) {
