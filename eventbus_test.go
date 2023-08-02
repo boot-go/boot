@@ -118,7 +118,7 @@ func TestEventbusSubscribe(t *testing.T) {
 	}
 	for _, tc := range testcases {
 		t.Run(tc.name, func(t *testing.T) {
-			bus := NewTestableEventBus()
+			bus := newTestableEventBus()
 			err := bus.Subscribe(tc.topic)
 			if (err != nil) != tc.wantErr {
 				t.Errorf("eventBus.subscribe() error = %v, wantErr %v", err, tc.wantErr)
@@ -423,7 +423,7 @@ func TestEventbusUnsubscribe(t *testing.T) {
 	}
 	for _, tc := range testcases {
 		t.Run(tc.name, func(t *testing.T) {
-			bus := NewTestableEventBus()
+			bus := newTestableEventBus()
 			err := bus.Subscribe(tc.event)
 			if err != nil {
 				t.Errorf("bus.Subscribe() failed: %v", err)
@@ -438,8 +438,8 @@ func TestEventbusUnsubscribe(t *testing.T) {
 
 func TestNewTestableEventBus(t *testing.T) {
 	t.Run("new testable event bus", func(t *testing.T) {
-		tb := NewTestableEventBus()
-		if tb == nil {
+		bus := newTestableEventBus()
+		if bus == nil {
 			t.FailNow()
 		}
 	})

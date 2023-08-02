@@ -199,7 +199,7 @@ func (s *Session) Go() error { //nolint:varnamelen // s is fine for method
 	err = s.eventbus.activate()
 	if err == nil {
 		// blocking here until Shutdown
-		s.waitForShutdown(instances)
+		s.waitForShutdown()
 	} else {
 		Logger.Error.Printf("going down - eventbus activation failed: %v", err)
 	}
@@ -237,7 +237,7 @@ func (s *Session) createComponents() (*registry, error) {
 	return registry, nil
 }
 
-func (s *Session) waitForShutdown(instances componentManagers) {
+func (s *Session) waitForShutdown() {
 	signal.Notify(s.shutdownChannel, interruptSignal, shutdownSignal)
 	sig := <-s.shutdownChannel
 	switch {

@@ -29,7 +29,7 @@ import (
 	"testing"
 )
 
-//nolint:funlen // Testdata
+//nolint:funlen,gocognit // Testdata
 func TestBootWithWireConfig(t *testing.T) {
 	t1 := &envTestStruct1{}
 	t2 := &envTestStruct2{}
@@ -78,7 +78,10 @@ func TestBootWithWireConfig(t *testing.T) {
 			name:       "simple configuration",
 			controller: t1,
 			setup: func() {
-				os.Setenv("t1", "v1")
+				err := os.Setenv("t1", "v1")
+				if err != nil {
+					panic("failed to set environment variable")
+				}
 			},
 			expected: &envTestStruct1{
 				C: "v1",
@@ -117,7 +120,10 @@ func TestBootWithWireConfig(t *testing.T) {
 			name:       "simple int configuration",
 			controller: t7,
 			setup: func() {
-				os.Setenv("t7", "100")
+				err := os.Setenv("t7", "100")
+				if err != nil {
+					panic("failed to set environment variable")
+				}
 			},
 			expected: &envTestStruct7{
 				B: 100,
@@ -127,7 +133,10 @@ func TestBootWithWireConfig(t *testing.T) {
 			name:       "wrong int configuration",
 			controller: t8,
 			setup: func() {
-				os.Setenv("t8", "XYZ")
+				err := os.Setenv("t8", "XYZ")
+				if err != nil {
+					panic("failed to set environment variable")
+				}
 			},
 			err: "Error failed to load configuration value for t8 <envTestStruct8.B>",
 		},
@@ -135,7 +144,10 @@ func TestBootWithWireConfig(t *testing.T) {
 			name:       "simple bool configuration",
 			controller: t9,
 			setup: func() {
-				os.Setenv("t9", "true")
+				err := os.Setenv("t9", "true")
+				if err != nil {
+					panic("failed to set environment variable")
+				}
 			},
 			expected: &envTestStruct9{
 				F: true,
@@ -145,7 +157,10 @@ func TestBootWithWireConfig(t *testing.T) {
 			name:       "wrong bool configuration",
 			controller: t10,
 			setup: func() {
-				os.Setenv("t10", "xyz")
+				err := os.Setenv("t10", "xyz")
+				if err != nil {
+					panic("failed to set environment variable")
+				}
 			},
 			err: "Error failed to load configuration value for t10 <envTestStruct10.F>",
 		},
@@ -153,7 +168,10 @@ func TestBootWithWireConfig(t *testing.T) {
 			name:       "bool invalid syntax",
 			controller: t11,
 			setup: func() {
-				os.Setenv("t11", "xyz")
+				err := os.Setenv("t11", "xyz")
+				if err != nil {
+					panic("failed to set environment variable")
+				}
 			},
 			err: " ",
 		},
@@ -161,7 +179,10 @@ func TestBootWithWireConfig(t *testing.T) {
 			name:       "int invalid syntax",
 			controller: t12,
 			setup: func() {
-				os.Setenv("t12", "xyz")
+				err := os.Setenv("t12", "xyz")
+				if err != nil {
+					panic("failed to set environment variable")
+				}
 			},
 			err: " ",
 		},
@@ -169,7 +190,10 @@ func TestBootWithWireConfig(t *testing.T) {
 			name:       "unsupported tag value",
 			controller: t13,
 			setup: func() {
-				os.Setenv("t13", "xyz")
+				err := os.Setenv("t13", "xyz")
+				if err != nil {
+					panic("failed to set environment variable")
+				}
 			},
 			err: "unsupported tag value ",
 		},

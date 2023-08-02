@@ -131,13 +131,12 @@ Everything in **boot-go** starts with a component. They are key fundamental in t
 
 A component should be _fail tolerant_, _recoverable_, _agnostic_ and _decent_.
 
-Facet | Meaning | Example
--------- | -------- | --------
-_fail tolerant_ | Don't stop processing on errors.   | A http request can still be processed, even when the metrics server is not available anymore.
-_recoverable_ | Try to recover from errors. | A database component should try to reconnect after losing the connection.
-_agnostic_ | Behave the same in any environment. | A key-value store component should work on a local development machine the same way as in a containerized environment.
-_decent_ | Don't overload the developer with complexity. | Keep the interface and events as simple as possible. It's better to build three smaller but specific components then one general with increased complexity. Less is often more.
-
+| Facet           | Meaning                                       | Example                                                                                                                                                                         |
+|-----------------|-----------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| _fail tolerant_ | Don't stop processing on errors.              | A http request can still be processed, even when the metrics server is not available anymore.                                                                                   |
+| _recoverable_   | Try to recover from errors.                   | A database component should try to reconnect after losing the connection.                                                                                                       |
+| _agnostic_      | Behave the same in any environment.           | A key-value store component should work on a local development machine the same way as in a containerized environment.                                                          |
+| _decent_        | Don't overload the developer with complexity. | Keep the interface and events as simple as possible. It's better to build three smaller but specific components then one general with increased complexity. Less is often more. |
 
 ### Configuration
 Configuration values can also be automatically injected with arguments or environment variables at start time. The value from ```USER``` will be used in this example. If the argument ```--USER madpax``` is not set and the environment variable is not defined, it is possible to specify the reaction whether the execution should stop with a panic or continue with a warning.

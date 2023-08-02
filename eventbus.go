@@ -64,14 +64,15 @@ type EventBus interface {
 
 var _ Component = (*eventBus)(nil) // Verify conformity to Component
 
-// errors
 var (
+	// ErrHandlerMustNotBeNil is returned if the handler is nil, which is not allowed
 	ErrHandlerMustNotBeNil = errors.New("handler must not be nil")
-	ErrEventMustNotBeNil   = errors.New("event must not be nil")
-	ErrUnknownEventType    = errors.New("couldn't determiner the message type")
-	ErrHandlerNotFound     = errors.New("handler not found to remove")
-	ErrHandlerNotSupported = errors.New("handler function not supported")
-	ErrPublishEventFailed  = errors.New("publish event failed")
+	// ErrEventMustNotBeNil is returned if the event is nil, which is not sensible
+	ErrEventMustNotBeNil = errors.New("event must not be nil")
+	// ErrUnknownEventType is returned if the event type could not be determined
+	ErrUnknownEventType = errors.New("couldn't determiner the message type")
+	// ErrHandlerNotFound is returned if the handler to be removed could not be found
+	ErrHandlerNotFound = errors.New("handler not found to remove")
 )
 
 // Init is described in the Component interface
@@ -365,8 +366,8 @@ type testableEventBus struct {
 	eventBus
 }
 
-// NewTestableEventBus can be used for unit testing.
-func NewTestableEventBus() *testableEventBus {
+// newTestableEventBus can be used for unit testing.
+func newTestableEventBus() *testableEventBus {
 	return &testableEventBus{eventBus{
 		Runtime: &runtime{
 			modes: []Flag{UnitTestFlag},
