@@ -25,3 +25,52 @@ jobs:
 
       - name: Test
         run: go test -cpu 2 -timeout 2m -race -v ./...
+
+      - name: Test coverage
+        run: |
+             until go test -v -p 1 -covermode=count -coverprofile=coverage.out ./...; do 
+               echo Test coverage failed, retrying in 3 seconds...
+               sleep 3
+             done
+
+      - name: Tool cover to func
+        run:  go tool cover -func=coverage.out -o=cover.out
+
+      - name: Obtain coverage
+        run: echo "COVERAGE=$(grep -e 'total' cover.out | awk '{print $3;}')" >> $GITHUB_ENV
+
+      - name: Create coverage badge
+        uses: schneegans/dynamic-badges-action@v1.6.0
+        with:
+          auth: ${{ secrets.GIST_SECRET }}
+          gistID: c77b22000b3e249510dfb4542847c708
+          filename: test_coverage.json
+          label: "test coverage"
+          message: ${{ env.COVERAGE }}
+          valColorRange: ${{ env.COVERAGE }}
+          maxColorRange: 100
+          minColorRange: 0
+
+      - name: Tool cover to html
+        run: go tool cover -html=coverage.out -o=cover.html
+
+#      - name: Obtain html coverage
+#        run: echo "HTML_COVERAGE='$(cat cover.html)'" >> $GITHUB_ENV
+
+#      - name: Upload html coverage
+#        uses: gorgbus/gist-actions@main
+#        env:
+#          GITHUB_TOKEN: ${{ secrets.GIST_SECRET }}
+#        with:
+#          action: "update"
+#          gist_id: "c77b22000b3e249510dfb4542847c708"
+#          file_name: "cover.html"
+#          content: ${{  }}
+
+      - name: Upload html coverage
+        uses: exuanbo/actions-deploy-gist@v1
+        with:
+          token: ${{ secrets.GIST_SECRET }}
+          gist_id: c77b22000b3e249510dfb4542847c708
+          file_path: cover.html
+          file_type: text

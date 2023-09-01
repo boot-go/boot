@@ -3,7 +3,9 @@
     <div align="center">
         <a href="https://github.com/boot-go/boot/tags"><img alt="Commit tag" src="https://img.shields.io/github/v/tag/boot-go/boot"></a>
         <a href="https://github.com/boot-go/boot/actions/workflows/action.yml"><img src="https://github.com/boot-go/boot/actions/workflows/action.yml/badge.svg?branch=main" alt="github action"></a>
+        <a href="https://htmlpreview.github.io/?https://gist.githubusercontent.com/boot-go/c77b22000b3e249510dfb4542847c708/raw/ae9b2e83e9a4adafed6da2160e40855f86ca58a8/cover.html"><img src="https://img.shields.io/endpoint?url=https://gist.githubusercontent.com/boot-go/c77b22000b3e249510dfb4542847c708/raw/test_coverage.json" alt="test coverage"></a>
         <a href="https://goreportcard.com/report/github.com/boot-go/boot"><img src="https://goreportcard.com/badge/github.com/boot-go/boot" alt="go report"></a>
+        <a href="https://pkg.go.dev/github.com/boot-go/boot"><img src="https://pkg.go.dev/badge/github.com/boot-go/boot.svg" alt="Go Reference"></a>
         <a href="https://opensource.org/licenses/MIT"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="License: MIT"></a>
     </div>
 </div>
