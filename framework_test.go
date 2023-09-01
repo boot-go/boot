@@ -168,7 +168,10 @@ func TestBootShutdown(t *testing.T) {
 
 	go func() {
 		time.Sleep(5 * time.Second)
-		ts.Shutdown()
+		err := ts.Shutdown()
+		if err != nil {
+			t.Fail()
+		}
 	}()
 
 	err := ts.Go()
@@ -181,6 +184,44 @@ func TestBootShutdown(t *testing.T) {
 	testStruct.mutex.Lock()
 	if !testStruct.stopped {
 		t.Fatal("Component not stopped")
+	}
+}
+
+func TestBootShutdownFails(t *testing.T) {
+	globalSession = NewSession(UnitTestFlag)
+	Register(func() Component {
+		return &bootTestComponent{}
+	})
+	globalSession.option.DoShutdown = func() error {
+		globalSession.option.shutdownChannel <- shutdownSignal
+		return errors.New("shutdown failed")
+	}
+
+	testSucceeded := false
+	mutex := sync.Mutex{}
+
+	go func() {
+		time.Sleep(2 * time.Second)
+		err := Shutdown()
+		if err == nil || err.Error() != "shutdown failed" {
+			t.Fail()
+		} else {
+			mutex.Lock()
+			testSucceeded = true
+			mutex.Unlock()
+		}
+	}()
+
+	err := Go()
+	if err != nil {
+		t.FailNow()
+	}
+
+	time.Sleep(5 * time.Second)
+	defer mutex.Unlock()
+	mutex.Lock()
+	if !testSucceeded {
+		t.Fatal("shutdown test failed")
 	}
 }
 
@@ -226,7 +267,7 @@ func TestShutdownByOsSignal(t *testing.T) {
 
 	go func() {
 		time.Sleep(2 * time.Second)
-		ts.shutdownChannel <- shutdownSignal
+		ts.Session.option.shutdownChannel <- shutdownSignal
 	}()
 
 	err := ts.Go()
@@ -238,7 +279,7 @@ func TestShutdownByOsSignal(t *testing.T) {
 	defer testStruct.mutex.Unlock()
 	testStruct.mutex.Lock()
 	if !testStruct.stopped {
-		t.Fatal("Component not stopped")
+		t.Fatal("component not stopped")
 	}
 }
 
@@ -250,7 +291,7 @@ func TestInterruptByOsSignal(t *testing.T) {
 		time.Sleep(2 * time.Second)
 		ts.changeMutex.Lock()
 		defer ts.changeMutex.Unlock()
-		ts.shutdownChannel <- interruptSignal
+		ts.Session.option.shutdownChannel <- interruptSignal
 	}()
 
 	err := ts.Go()
@@ -262,7 +303,7 @@ func TestInterruptByOsSignal(t *testing.T) {
 	defer testStruct.mutex.Unlock()
 	testStruct.mutex.Lock()
 	if !testStruct.stopped {
-		t.Fatal("Component not stopped")
+		t.Fatal("component not stopped")
 	}
 }
 
@@ -485,7 +526,10 @@ func TestBoot(t *testing.T) {
 	})
 	go func() {
 		time.Sleep(time.Second)
-		Shutdown()
+		err := Shutdown()
+		if err != nil {
+			t.Fail()
+		}
 	}()
 	err := Go()
 	if err != nil {
@@ -515,7 +559,10 @@ func TestRegisterFail(t *testing.T) {
 	go func() {
 		defer func() {
 			if r := recover(); r != nil {
-				Shutdown()
+				err := Shutdown()
+				if err != nil {
+					t.Fail()
+				}
 			}
 		}()
 		time.Sleep(time.Second)
@@ -541,7 +588,10 @@ func TestOverrideFail(t *testing.T) {
 	go func() {
 		defer func() {
 			if r := recover(); r != nil {
-				Shutdown()
+				err := Shutdown()
+				if err != nil {
+					t.Fail()
+				}
 			}
 		}()
 		time.Sleep(time.Second)

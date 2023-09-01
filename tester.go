@@ -31,6 +31,16 @@ type testSession struct {
 	*Session
 }
 
+func newTestSessionWithOptions(options Options, mocks ...Component) *testSession {
+	ts := &testSession{
+		Session: NewSessionWithOptions(options),
+	}
+	Logger.Debug.SetOutput(os.Stdout)
+	// ignore error because it can't fail
+	_ = ts.overrideTestComponent(mocks...)
+	return ts
+}
+
 // newTestSession creates a new session with one or more specific components within a unit test.
 func newTestSession(mocks ...Component) *testSession {
 	ts := &testSession{

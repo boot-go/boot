@@ -166,7 +166,7 @@ func TestBootWithWire(t *testing.T) {
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			_, err := resolveDependency(getEntry(&test.controller), registry)
+			_, err := resolveDependency(getEntry(&test.controller), registry) //nolint:gosec // sec for this test is irrelevant
 			if test.err == "" {
 				if err != nil {
 					t.Fail()

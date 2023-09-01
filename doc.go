@@ -23,6 +23,6 @@
 
 package boot
 
-const version = "v1.1.2"
+const version = "v1.2.0"
 
 // boot-go is a framework to support component-based development (CBD) using the Go programming language.

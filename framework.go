@@ -109,15 +109,19 @@ func Go() error {
 	Logger.Info.Printf("booting `boot-go %s` /// %s OS/%s ARCH/%s CPU/%d MEM/%dMB SYS/%dMB\n", version, gort.Version(), gort.GOOS, gort.GOARCH, gort.NumCPU(), s.Alloc/megabyte, s.Sys/megabyte)
 	err := globalSession.Go()
 	if err == nil {
-		Logger.Info.Printf("shutdowned after %s\n", time.Since(startTime).String())
+		Logger.Info.Printf("exited after %s\n", time.Since(startTime).String())
 	} else {
-		Logger.Error.Printf("shutdowned after %s with: %s\n", time.Since(startTime).String(), err.Error())
+		Logger.Error.Printf("exited after %s with: %s\n", time.Since(startTime).String(), err.Error())
 	}
 	return err
 }
 
-// Shutdown boot-go componentManager. All components will be stopped. This is equivalent with
+// Shutdown boot-go componentManager. All components will be stopped. With standard options, this is equivalent with
 // issuing a SIGTERM on process level.
-func Shutdown() {
-	globalSession.Shutdown()
+func Shutdown() error {
+	err := globalSession.Shutdown()
+	if err != nil {
+		return err
+	}
+	return nil
 }

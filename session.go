@@ -42,6 +42,7 @@ type factory struct {
 // phase describes the status of the boot-go componentManager
 type phase uint8
 
+// String returns the name of the phase
 func (p phase) String() string {
 	switch p {
 	case initializing:
@@ -85,26 +86,64 @@ const (
 	exiting
 )
 
+// Session is the main struct for the boot-go application framework
 type Session struct {
-	factories       []factory
-	changeMutex     sync.Mutex
-	phase           phase
-	shutdownChannel chan os.Signal
-	runtime         *runtime
-	eventbus        *eventBus
+	factories   []factory
+	changeMutex sync.Mutex
+	phase       phase
+	runtime     *runtime
+	eventbus    *eventBus
+	option      Options
 }
 
-// NewSession will create a new Session
+// Options contains the options for the boot-go Session
+type Options struct {
+	// Mode is a list of flags to be used for the application.
+	Mode []Flag
+	// DoMain is called when the application is requested to start and blocks until shutdown is requested.
+	DoMain func() error
+	// DoShutdown is called when the application is requested to shutdown.
+	DoShutdown func() error
+	// channel to receive shutdown or interrupt signal - this is used for testing
+	shutdownChannel chan os.Signal
+}
+
+// NewSession will create a new Session with default options
 func NewSession(mode ...Flag) *Session {
+	localShutdownChannel := make(chan os.Signal, 1)
+	return NewSessionWithOptions(Options{
+		Mode: mode,
+		DoMain: func() error {
+			signal.Notify(localShutdownChannel, interruptSignal, shutdownSignal)
+			sig := <-localShutdownChannel
+			switch {
+			case sig == interruptSignal:
+				Logger.Warn.Printf("caught interrupt signal %s\n", sig.String())
+				Logger.Debug.Printf("shutdown gracefully initiated...\n")
+			case sig == shutdownSignal:
+				Logger.Debug.Printf("shutdown requested...\n")
+			}
+			return nil
+		},
+		DoShutdown: func() error {
+			localShutdownChannel <- shutdownSignal
+			return nil
+		},
+		shutdownChannel: localShutdownChannel,
+	})
+}
+
+// NewSessionWithOptions will create a new Session with given options
+func NewSessionWithOptions(options Options) *Session {
 	s := &Session{
-		factories:       []factory{},
-		changeMutex:     sync.Mutex{},
-		phase:           initializing,
-		shutdownChannel: make(chan os.Signal, 1),
+		factories:   []factory{},
+		changeMutex: sync.Mutex{},
+		phase:       initializing,
+		option:      options,
 	}
 	// register default components... errors not possible, so they are ignored
 	s.runtime = &runtime{
-		modes: mode,
+		modes: options.Mode,
 	}
 	_ = s.register(DefaultName, func() Component {
 		return s.runtime
@@ -116,6 +155,7 @@ func NewSession(mode ...Flag) *Session {
 	return s
 }
 
+// nextPhaseAfter will change the current phase to the next phase. If the current phase is not the expected phase, an error will be returned.
 func (s *Session) nextPhaseAfter(expected phase) error {
 	defer s.changeMutex.Unlock()
 	s.changeMutex.Lock()
@@ -140,6 +180,7 @@ func (s *Session) nextPhaseAfter(expected phase) error {
 	return nil
 }
 
+// register a factory function for a component. These functions will be called on boot to create the components.
 func (s *Session) register(name string, create func() Component, override bool) error {
 	if name == "" || create == nil {
 		return errSessionRegisterNameOrFunction
@@ -157,22 +198,27 @@ func (s *Session) register(name string, create func() Component, override bool) 
 	return nil
 }
 
+// Register a factory function for a component. The component will be created on boot.
 func (s *Session) Register(create func() Component) error {
 	return s.register(DefaultName, create, false)
 }
 
+// Override a factory function for a component. The component will be created on boot.
 func (s *Session) Override(create func() Component) error {
 	return s.register(DefaultName, create, true)
 }
 
+// RegisterName registers a factory function with the given name. The component will be created on boot.
 func (s *Session) RegisterName(name string, create func() Component) error {
 	return s.register(name, create, false)
 }
 
+// OverrideName overrides a factory function with the given name. The component will be created on boot.
 func (s *Session) OverrideName(name string, create func() Component) error {
 	return s.register(name, create, true)
 }
 
+// Go the boot component framework. This starts the execution process.
 func (s *Session) Go() error { //nolint:varnamelen // s is fine for method
 	if err := s.nextPhaseAfter(initializing); err != nil {
 		return err
@@ -193,13 +239,22 @@ func (s *Session) Go() error { //nolint:varnamelen // s is fine for method
 	instances.startComponents()
 	Logger.Debug.Printf("%d components started", instances.count())
 
-	go s.waitUntilAllComponentsStopped(registry)
+	go func() {
+		err := s.waitUntilAllComponentsStopped(registry)
+		if err != nil {
+			Logger.Error.Printf("shutdown failed with error: %v", err)
+		}
+	}()
 
 	// activate eventbus to process alle queued events
 	err = s.eventbus.activate()
 	if err == nil {
 		// blocking here until Shutdown
-		s.waitForShutdown()
+		err = s.option.DoMain()
+		if err != nil {
+			Logger.Error.Printf("processing until shutdown failed with error: %v", err)
+			return err
+		}
 	} else {
 		Logger.Error.Printf("going down - eventbus activation failed: %v", err)
 	}
@@ -218,10 +273,19 @@ func (s *Session) Go() error { //nolint:varnamelen // s is fine for method
 	return nil
 }
 
-func (s *Session) Shutdown() {
-	s.shutdownChannel <- shutdownSignal
+// Shutdown initiates the shutdown process. All components will be stopped.
+func (s *Session) Shutdown() error {
+	Logger.Debug.Printf("shutdown initiated...")
+	if s.option.DoShutdown != nil {
+		err := s.option.DoShutdown()
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
+// createComponents() will create all registered components
 func (s *Session) createComponents() (*registry, error) {
 	registry := newRegistry()
 	for _, factory := range s.factories {
@@ -237,21 +301,13 @@ func (s *Session) createComponents() (*registry, error) {
 	return registry, nil
 }
 
-func (s *Session) waitForShutdown() {
-	signal.Notify(s.shutdownChannel, interruptSignal, shutdownSignal)
-	sig := <-s.shutdownChannel
-	switch {
-	case sig == interruptSignal:
-		Logger.Warn.Printf("caught interrupt signal %s\n", sig.String())
-		Logger.Debug.Printf("Shutdown gracefully initiated...\n")
-	case sig == shutdownSignal:
-		Logger.Debug.Printf("Shutdown requested...\n")
-	}
-}
-
 // waitUntilAllComponentsStopped() will wait until all components have stopped processing
-func (s *Session) waitUntilAllComponentsStopped(reg *registry) {
+func (s *Session) waitUntilAllComponentsStopped(reg *registry) error {
 	Logger.Debug.Printf("wait until all components are stopped...")
 	reg.executionWaitGroup.Wait()
-	s.Shutdown()
+	err := s.Shutdown()
+	if err != nil {
+		return err
+	}
+	return err
 }

@@ -491,3 +491,31 @@ func TestSessionFailOnCreateNilComponents(t *testing.T) {
 		}
 	})
 }
+
+func TestSessionWithOptionsFailOnDoShutdown(t *testing.T) {
+	t.Run("doShutdown fails", func(t *testing.T) {
+		s := newTestSessionWithOptions(Options{
+			DoShutdown: func() error {
+				return errors.New("fail")
+			},
+		})
+		err := s.Shutdown()
+		if err == nil || err.Error() != "fail" {
+			t.Fail()
+		}
+	})
+}
+
+func TestSessionWithOptionsFailOnDoMain(t *testing.T) {
+	t.Run("doMain fails", func(t *testing.T) {
+		s := newTestSessionWithOptions(Options{
+			DoMain: func() error {
+				return errors.New("fail")
+			},
+		})
+		err := s.Go()
+		if err == nil || err.Error() != "fail" {
+			t.Fail()
+		}
+	})
+}

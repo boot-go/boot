@@ -249,7 +249,7 @@ func TestBootWithWireConfig(t *testing.T) {
 			if test.setup != nil {
 				test.setup()
 			}
-			_, err := resolveDependency(getEntry(&test.controller), registry)
+			_, err := resolveDependency(getEntry(&test.controller), registry) //nolint:gosec // sec for this test is irrelevant
 			if test.err == "" {
 				if err != nil {
 					t.Fail()
