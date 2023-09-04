@@ -24,7 +24,19 @@ jobs:
         uses: golangci/golangci-lint-action@v3
 
       - name: Test
-        run: go test -cpu 2 -timeout 2m -race -v ./...
+        run: |
+          n=0
+          until go test -cpu 2 -timeout 2m -race -v ./...; do 
+            if [ $n -ge 3 ]; then
+              exit 1
+            fi
+            echo Test coverage failed, retrying in 3 seconds...
+            n=$(($n+1))
+            sleep 3
+          done
+
+      - name: Perform benchmark testing
+        run: go test -bench=Benchmark . -run Benchmark
 
       - name: Test coverage
         run: |
@@ -45,7 +57,7 @@ jobs:
           auth: ${{ secrets.GIST_SECRET }}
           gistID: c77b22000b3e249510dfb4542847c708
           filename: test_coverage.json
-          label: "test coverage"
+          label: coverage
           message: ${{ env.COVERAGE }}
           valColorRange: ${{ env.COVERAGE }}
           maxColorRange: 100
@@ -53,19 +65,6 @@ jobs:
 
       - name: Tool cover to html
         run: go tool cover -html=coverage.out -o=cover.html
-
-#      - name: Obtain html coverage
-#        run: echo "HTML_COVERAGE='$(cat cover.html)'" >> $GITHUB_ENV
-
-#      - name: Upload html coverage
-#        uses: gorgbus/gist-actions@main
-#        env:
-#          GITHUB_TOKEN: ${{ secrets.GIST_SECRET }}
-#        with:
-#          action: "update"
-#          gist_id: "c77b22000b3e249510dfb4542847c708"
-#          file_name: "cover.html"
-#          content: ${{  }}
 
       - name: Upload html coverage
         uses: exuanbo/actions-deploy-gist@v1

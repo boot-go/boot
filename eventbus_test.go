@@ -385,7 +385,7 @@ func TestEventbusUnsubscribe(t *testing.T) {
 			wantErr:      true,
 		},
 		{
-			name:         "non Existing Subscription",
+			name:         "int subscription",
 			event:        testEventFunction,
 			eventHandler: func(event int) {},
 			wantErr:      true,
