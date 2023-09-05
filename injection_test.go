@@ -104,6 +104,12 @@ func TestParseStructTag(t *testing.T) {
 	}
 }
 
+func FuzzParseStructTag(f *testing.F) {
+	f.Fuzz(func(t *testing.T, a string) {
+		parseStructTag(a)
+	})
+}
+
 type testerComponentOne struct{}
 
 func (t *testerComponentOne) Init() error { return nil }

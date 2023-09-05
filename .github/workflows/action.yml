@@ -38,6 +38,21 @@ jobs:
       - name: Perform benchmark testing
         run: go test -bench=Benchmark . -run Benchmark
 
+      - name: Fuzz testing
+        run: |
+          files=$(grep -r --include='**_test.go' --files-with-matches 'func Fuzz' .)
+          
+          for file in ${files}; do
+            funcs=$(awk '/^func Fuzz/ {print $2}' $file)
+            for func in ${funcs}
+            do    
+              func=${func::-2}
+              echo "Fuzzing $func in $file"
+              parentDir=$(dirname $file)
+              go test $parentDir -run=$func -fuzz=$func -fuzztime=30s
+            done
+          done
+
       - name: Test coverage
         run: |
              until go test -v -p 1 -covermode=count -coverprofile=coverage.out ./...; do 

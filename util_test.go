@@ -89,6 +89,12 @@ func TestQualifiedName(t *testing.T) {
 	}
 }
 
+func FuzzQualifiedName(f *testing.F) {
+	f.Fuzz(func(t *testing.T, a string) {
+		QualifiedName(a)
+	})
+}
+
 func TestSplit(t *testing.T) {
 	type args struct {
 		s     string
@@ -173,6 +179,12 @@ func TestSplit(t *testing.T) {
 			}
 		})
 	}
+}
+
+func FuzzSplit(f *testing.F) {
+	f.Fuzz(func(t *testing.T, a string, b string, c string) {
+		Split(a, b, c)
+	})
 }
 
 func TestLoggerMute(t *testing.T) {

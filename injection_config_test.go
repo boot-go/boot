@@ -294,6 +294,12 @@ func TestGetConfig(t *testing.T) {
 	}
 }
 
+func FuzzGetConfig(f *testing.F) {
+	f.Fuzz(func(t *testing.T, a string) {
+		getConfig(a)
+	})
+}
+
 //nolint:unused // for testing purpose nolint:unused
 type envTestStruct1 struct {
 	a int
