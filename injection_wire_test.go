@@ -109,7 +109,7 @@ func TestBootWithWire(t *testing.T) {
 		{
 			name:       "Failed injection not unique",
 			controller: t6,
-			err:        "Error multiple dependency values found for <default:testStruct6.F>",
+			err:        "Error multiple dependency values found for <default:testStruct6.F[reflect/Value][reflect/Value]>",
 		},
 		{
 			name:       "Failed injection for unrecognized component",

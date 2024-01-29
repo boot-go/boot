@@ -36,7 +36,7 @@ import (
 func QualifiedName(v any) string {
 	t := reflect.TypeOf(v)
 	if t != nil {
-		switch t.Kind() { //nolint:exhaustive // all others are covered by default
+		switch t.Kind() { //nolint:exhaustive,nolintlint
 		case reflect.Ptr:
 			return t.Elem().PkgPath() + "/" + t.Elem().Name()
 		case reflect.Func:

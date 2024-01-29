@@ -48,6 +48,11 @@ const (
 	fieldTagWireDefault = "default"
 )
 
+const (
+	errorTextLoadConfiguration = "failed to load configuration value for "
+	errorTextInitializing      = "initializing "
+)
+
 func (e *DependencyInjectionError) Error() string {
 	return fmt.Sprintf("Error %s %s", e.error.Error(), e.detail)
 }
@@ -115,11 +120,11 @@ func initComponent(resolveEntry *componentManager) (err error) {
 		if r := recover(); r != nil {
 			switch v := r.(type) {
 			case error:
-				err = errors.New("initializing " + resolveEntry.getFullName() + " panicked with error: " + v.Error())
+				err = errors.New(errorTextInitializing + resolveEntry.getFullName() + " panicked with error: " + v.Error())
 			case string:
-				err = errors.New("initializing " + resolveEntry.getFullName() + " panicked with message: " + v)
+				err = errors.New(errorTextInitializing + resolveEntry.getFullName() + " panicked with message: " + v)
 			default:
-				err = errors.New("initializing " + resolveEntry.getFullName() + " panicked")
+				err = errors.New(errorTextInitializing + resolveEntry.getFullName() + " panicked")
 			}
 		}
 	}()
@@ -173,9 +178,13 @@ func processWiring(reg *registry, reflectedComponent reflect.Value, field reflec
 			detail: "<" + regEntryName + ":" + reflectedComponent.Type().Name() + "." + field.Name + ">",
 		}
 	default:
+		detail := regEntryName + ":" + reflectedComponent.Type().Name() + "." + field.Name
+		for _, v := range matchingValues {
+			detail += "[" + QualifiedName(v) + "]"
+		}
 		return nil, &DependencyInjectionError{
 			error:  errors.New("multiple dependency values found for"),
-			detail: "<" + regEntryName + ":" + reflectedComponent.Type().Name() + "." + field.Name + ">",
+			detail: "<" + detail + ">",
 		}
 	}
 	return []*componentManager{}, nil // this
@@ -207,7 +216,7 @@ func processConfiguration(reflectedComponent reflect.Value, field reflect.Struct
 			} else {
 				if panicOnFail {
 					return &DependencyInjectionError{
-						error:  errors.New("failed to load configuration value for " + cfgKey),
+						error:  errors.New(errorTextLoadConfiguration + cfgKey),
 						detail: "<" + reflectedComponent.Type().Name() + "." + field.Name + ">",
 					}
 				}
@@ -261,7 +270,7 @@ func processConfigBool(field reflect.StructField, componentValue reflect.Value, 
 			if err != nil {
 				if panicOnFail {
 					return &DependencyInjectionError{
-						error:  errors.New("failed to load configuration value for " + cfg),
+						error:  errors.New(errorTextLoadConfiguration + cfg),
 						detail: "<" + componentValue.Type().Name() + "." + field.Name + ">",
 					}
 				}
@@ -283,7 +292,7 @@ func processConfigInt(field reflect.StructField, componentValue reflect.Value, f
 			if err != nil {
 				if panicOnFail {
 					return &DependencyInjectionError{
-						error:  errors.New("failed to load configuration value for " + cfg),
+						error:  errors.New(errorTextLoadConfiguration + cfg),
 						detail: "<" + componentValue.Type().Name() + "." + field.Name + ">",
 					}
 				}
